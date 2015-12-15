@@ -152,7 +152,7 @@ float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
         }
         e = (entity*)llGetNext(itr);
     }
-    cor_total = normalize_color(cor);
+    cor_total = normalize_color(cor_total);
     return cor_total;
 }
 

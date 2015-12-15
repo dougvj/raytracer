@@ -82,16 +82,17 @@ int main(int argc, char** argv) {
                 }
             )
     );
-/*    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 25; i++) {
         addEntity(rc,
                  createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 5.0,  (i / 5) * 5 ), frand() + 1.0,
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
                     FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    FLOAT4_3f(0.2, 0.f, 0.0),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    0.0
                 })
         );
-    }*/
+    }
     renderScene(rc, w, h, num_threads);
     return 0;
 }
