@@ -10,9 +10,10 @@ LDFLAGS= -lpthread -lm -L./libdatastruct -ldatastruct
 
 ifdef MSYSTEM
 LDFLAGS+= -mwindows
-else
-LDFLAGS+= 
+else ifdef PHI
+LDFLAGS+= -mmic
 endif
+
 
 EXECUTABLE=raytrace
 
@@ -71,11 +72,10 @@ set_test:
 ifdef DEBUG
 CFLAGS+= -g
 CXXFLAGS+= -g
+else ifdef PHI
+CFLAGS+= -O3 -mmic -mkl 
 else
 CFLAGS+= -O3 -march=native -mtune=native
-endif
-ifdef PHI
-CFLAGS+= -mmic -mkl -vec-report3
 endif
 CXXFLAGS+= -O3
 
