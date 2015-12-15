@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
                     FLOAT4_3f(1.0, 1.0, 1.0),
                     FLOAT4_3f(0.1, 0.1, 0.1),
                     FLOAT4_3f(0.05f, 0.05f, 0.05f),
-                    1.0
+                    10.0
                 }
             )
     );
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     FLOAT4_3f(0.0, 0.0, 1.0),
-                    20.0
+                    10.0
                 }
             )
     );
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     FLOAT4_3f(0.0, 1.0, 0.0),
-                    20.0,
+                    10.0,
                 }
             )
     );
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
                     FLOAT4_3f(0.3, 0.3, 0.3),
-                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(0.2, 0.2, 0.2),
                     0.0,
                 }
             )
@@ -77,9 +77,9 @@ int main(int argc, char** argv) {
                  createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 6.0,  (i / 5) * 5 ), frand() + 1.0,
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
-                    FLOAT4_3f(0.3, 0.3, 0.3),
+                    FLOAT4_3f(1.0, 1.0, 1.0),
                     FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    3.0
+                    1.0
                 })
         );
     }
