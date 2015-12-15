@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     int h = atoi(argv[2]);
     render_context* rc = createRenderContext();
     addEntity(rc,
-            createSphere(FLOAT4_3f(0.0, 4.0, 17.0), 2.3,
+            createSphere(FLOAT4_3f(0.0, 4.0, 23.0), 2.3,
                 (material) {
                     FLOAT4_3f(1.0, 1.0, 1.0),
                     FLOAT4_3f(0.1, 0.1, 0.1),
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(0.0, 0.0, 20.2), 1.5,
+            createSphere(FLOAT4_3f(0.0, 0.0, 25.2), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
@@ -36,17 +36,7 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(2000.0, 10000.0, -20000.2), 10.0,
-                (material) {
-                    FLOAT4_3f(0.0, 0.0, 0.0),
-                    FLOAT4_3f(0.0, 0.0, 0.0),
-                    FLOAT4_3f(1.0, 1.0, 1.0),
-                    400000000.0
-                }
-            )
-    );
-    addEntity(rc,
-            createSphere(FLOAT4_3f(-3.0, 0.0, 15.0), 1.5,
+            createSphere(FLOAT4_3f(-3.0, 0.0, 20.0), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
@@ -56,7 +46,7 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(3.0, 0.0, 15.0), 1.5,
+            createSphere(FLOAT4_3f(3.0, 0.0, 20.0), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
@@ -66,7 +56,7 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createPlane(FLOAT4_3f(0.0, -5.0, 0.0),
+            createPlane(FLOAT4_3f(0.0, -6.0, 0.0),
                         FLOAT4_3f(0.0, 1.0, 0.0),
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
@@ -84,12 +74,12 @@ int main(int argc, char** argv) {
     );
     for (int i = 0; i < 25; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 5.0,  (i / 5) * 5 ), frand() + 1.0,
+                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, -4.0,  (i / 5) * 5 ), frand() + 1.0,
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
+                    FLOAT4_3f(0.3, 0.3, 0.3),
                     FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    FLOAT4_3f(0.0, 0.0, 0.0),
-                    0.0
+                    100.0
                 })
         );
     }
