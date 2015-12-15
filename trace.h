@@ -1,56 +1,35 @@
 #ifndef TRACE_H
 #define TRACE_H
 #include "vmath.h"
+#include "entity.h"
+#include "libdatastruct/linkedlist.h"
 
-
-typedef struct {
-    float4 c_reflect;
-    float4 c_diffuse;
-    float4 c_emissions;
-} material;
-
-typedef struct {
-    float4 p;
-    float r;
-} sphere;
-
-typedef struct {
-    float4 p;
-    float4 n;
-} plane;
-
-typedef struct {
-    float4 v1;
-    float4 v2;
-    float4 v3;
-    float4 n;
-} triangle;
-
-#define PLANE 0x1
-#define SPHERE 0x2
-#define TRIANGLE 0x3
-
-
-typedef struct {
-    int type;
-    union {
-        triangle* t;
-        plane* p;
-        sphere* s;
-    };
-    material* m;
-} entity;
 
 typedef struct {
     float4 p;
     float4 d;
 } ray;
 
+typedef union {
+    unsigned char c[3];
+    struct {
+        unsigned char b, g, r;
+    };
+} color;
+
 typedef struct {
      int num_threads;
      int x;
      int y;
-     color** output;
+     float fov;
+     LL* entities;
+     color* output;
 } render_context;
+
+render_context* createRenderContext();
+void addEntity(render_context* rc, entity* e);
+entity* createSphere(float4 pos, float r, material m);
+entity* createPlane(float4 pos, float4 norm, material m);
+void renderScene(render_context* c, int x, int y, int num_threads);
 
 #endif

@@ -1,0 +1,3 @@
+[submodule "libdatastruct"]
+	path = libdatastruct
+	url = ssh://dvjnet.net/git/libdatastruct

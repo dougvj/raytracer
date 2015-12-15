@@ -1,7 +1,7 @@
 #ifndef VMATH_H
 #define VMATH_H
 #include "math.h"
-
+#include <stdio.h>
 typedef float v4sf __attribute__((vector_size(16)));
 
 typedef union {
@@ -14,6 +14,15 @@ typedef union {
         float w;
     };
 } float4;
+
+#define FLOAT4_3f(x, y, z) (float4){.v = {x, y, z, 0.0f}}
+#define FLOAT4_4f(x, y, z, w) (float4){.v = {x, y, z, w}}
+#define FLOAT4_v(x) (float4){.v = x}
+#define FLOAT4_Zero() (float4){.v = {0.0f, 0.0f, 0.0f, 0.0f}}
+
+inline void print_float4(float4 f) {
+    fprintf(stderr, "{%f, %f, %f, %f}\n", f.x, f.y, f.z, f.w);
+}
 
 inline float4 cross(float4 a, float4 b) {
     return (float4){.e = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}};

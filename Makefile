@@ -3,10 +3,10 @@ WARNINGS= -Wall -Werror -Wfatal-errors
 CWARNINGS=
 CXXWARNINGS=
 INCLUDE=
-CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE)
+CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) -g
 CXXFLAGS = -MMD $(WARNINGS) $(CXXWARNINGS) $(INCLUDE)
 
-LDFLAGS= -lpthread -lm 
+LDFLAGS= -lpthread -lm -L./libdatastruct -ldatastruct
 
 ifdef MSYSTEM
 LDFLAGS+= -mwindows
