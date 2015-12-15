@@ -105,7 +105,7 @@ float4 _traceRay(render_context* c, ray r, int num, entity* hit);
             cor_total = FLOAT4_v(cor_total.v + cor.v);
         }
     }
-    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights / 4).v / 4));
+    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights / 4).v ));
 }*/
 float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
     if (num > MAX_ITR)
