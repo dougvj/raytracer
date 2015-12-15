@@ -1,3 +1,1 @@
-make
-./raytrace
-mirage ./render.bmp
+./raytrace 1920 1080 24
