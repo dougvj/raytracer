@@ -20,8 +20,10 @@ EXECUTABLE=raytrace
 
 CC=gcc 
 CXX=g++
-#CC=icc -mmic
-#CXX=icc -mmic
+ifdef PHI
+CC=icc 
+CXX=icc
+endif
 
 
 
@@ -71,8 +73,11 @@ CFLAGS+= -g
 CXXFLAGS+= -g
 else
 CFLAGS+= -O3 -march=native -mtune=native
-CXXFLAGS+= -O3
 endif
+ifdef PHI
+CFLAGS+= -mmic -mkl -vec-report3
+endif
+CXXFLAGS+= -O3
 
 ifdef CLANG
 CC=clang
