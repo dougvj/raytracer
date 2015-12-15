@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "trace.h"
 
+float frand() {
+    return rand() / (float)RAND_MAX;
+}
+
 int main(int argc, char** argv) {
     render_context* rc = createRenderContext();
     addEntity(rc,
@@ -41,6 +45,16 @@ int main(int argc, char** argv) {
                 }
             )
     );
+    for (int i = 0; i < 10000; i++) {
+        addEntity(rc,
+                 createSphere(FLOAT4_3f((i % 100) * 5 - 250, -10.0f,  (i / 100) * 5 - 250), frand() + 0.5f,
+                (material) {
+                    FLOAT4_3f(0.8f, 0.8f, 0.8f),
+                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
+                    FLOAT4_3f(frand() * 0.3f, frand() * 0.3f, frand() * 0.3f)
+                })
+        );
+    }
     renderScene(rc, 7680, 4320, 240);
     return 0;
 }

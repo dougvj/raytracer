@@ -1,9 +1,11 @@
 #include "trace.h"
 #include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "bmp.h"
 
 #define MAX_BOUNCE 20
+#define DIFFUSE_RES 30
 
 typedef struct {
     int hit;
@@ -72,8 +74,32 @@ intersection intersectEntity(entity* e, ray* r) {
     return noHit();
 }
 
-float4 findDiffuse(render_context* c, float4 p, float4 n) {
-    return FLOAT4_4f(0.0f, 0.0f, 0.0f, 0.0f);
+float4 _traceRay(render_context* c, ray r, int num);
+
+float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
+    /*float deg_x = atan(n.x/n.y);
+    float deg_z = atan(n.z/n.y);
+    float sinx = sin(deg_x);
+    float cosx = cos(deg_x);
+    float sinz = sin(deg_z);
+    float cosz = cos(deg_z);
+
+
+    for (int i = 0; i < DIFFUSE_RES; i++) {
+        float deg_p = (i / (float)DIFFUSE_RES) * (M_PI);
+        int max_j = cos(deg_p) * (DIFFUSE_RES * 4);
+        float cos_p = cos(deg_p);
+        float sin_p = sin(deg_p);
+        for (int j = 0; j < max_j; j++) {
+            float deg_t = (j / (float)max_j) * (M_PI * 4);
+            float x = sin(deg_t);
+            float z = cos(deg_t);
+            float4 v = FLOAT4_3f(x - (sin_p * x) , cos_p, z - (sin_p * z));
+            v = FLOAT4_3f(v.x * cosz, v.y * sinz, v.z * cosx)
+            float4 cor = _traceRay(c, (ray){p, v}, num + 1)
+        }
+    }*/
+    return FLOAT4_Zero();
 }
 
 float4 getBackground(ray r) {
@@ -106,7 +132,7 @@ float4 _traceRay(render_context* c, ray r, int num) {
     }
     if (closest.hit) {
         float4 reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1);
-        float4 diffuse_color = findDiffuse(c, closest.p, closest.n);
+        float4 diffuse_color = findDiffuse(c, closest.p, closest.n, num);
         return FLOAT4_v(closest.m->c_reflect.v * reflect_color.v +
                closest.m->c_diffuse.v * diffuse_color.v +
                closest.m->c_emissions.v);
@@ -144,6 +170,7 @@ color _renderPixel(render_context* c, int x, int y) {
 typedef struct {
     render_context* c;
     int thread_num;
+    int count_complete;
 } thread_context;
 
 void _startRenderThread(thread_context* c) {
@@ -157,6 +184,7 @@ void _startRenderThread(thread_context* c) {
          int y = pixel / c->c->x;
          //fprintf(stderr, "%u, %u\n", x, y);
          c->c->output[pixel] = _renderPixel(c->c, x, y);
+         c->count_complete++;
     }
 }
 
@@ -202,11 +230,24 @@ void renderScene(render_context* rc, int x, int y, int num_threads) {
     output = malloc(sizeof(color) * (x * y));
     rc->output = output;
     pthread_t threads[num_threads];
+    thread_context contexts[num_threads];
     for (int i = 0; i < num_threads; i++) {
-        thread_context* c = malloc(sizeof(thread_context));
+        thread_context* c = &contexts[i];
         c->c = rc;
         c->thread_num = i;
+        c->count_complete = 0;
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
+    }
+    long complete = 0;
+    long total = x * y;
+    while (complete < total) {
+        complete = 0;
+        for (int i = 0; i < num_threads; i++) {
+            complete += contexts[i].count_complete;
+        }
+        float percentage = complete/(float)total;
+        fprintf(stderr, "%4.2f%% Complete\n", percentage * 100);
+        sleep(1);
     }
     for (int i = 0; i < num_threads; i++) {
          pthread_join(threads[i], NULL);
