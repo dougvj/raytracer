@@ -48,4 +48,73 @@ inline float4 reflect(float4 v, float4 n) {
     return (float4){.v = (v.v - (FLOAT4_f(d).v * n.v * FLOAT4_f(2.0f).v))};
 }
 
+inline int isZero(float4 f) {
+    return (f.x == 0.0f && f.y == 0.0f && f.z == 0.0f && f.w == 0.0f);
+}
+
+typedef struct {
+    float ax, az;
+} aimY;
+
+inline float4 rotate(float4 point, float4 axis, float theta) {
+    float x = point.x;
+    float y = point.y;
+    float z = point.z;
+    float u = axis.x;
+    float v = axis.y;
+    float w = axis.z;
+    return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
+                     (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
+                     (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
+
+}
+
+inline float4 rotateX(float4 point, float theta) {
+    float x = point.x;
+    float y = point.y;
+    float z = point.z;
+    const float u = 1;
+    const float v = 0;
+    const float w = 0;
+    return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
+                     (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
+                     (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
+
+}
+
+inline float4 rotateZ(float4 point, float theta) {
+    float x = point.x;
+    float y = point.y;
+    float z = point.z;
+    const float u = 0;
+    const float v = 0;
+    const float w = 1;
+    return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
+                     (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
+                     (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
+
+}
+
+inline float4 applyAimY(aimY a, float4 p) {
+    p = rotateX(p, a.ax);
+    p = rotateZ(p, a.az);
+    return p;
+}
+
+inline aimY computeAimY(float4 n) {
+    float nlength = length(n);
+    float xylength = length(FLOAT4_3f(n.x, n.y, 0.0f));
+    float ax, az;
+    if (xylength == 0)
+        az = n.x > 0 ? M_PI/2 : -M_PI/2;
+    else
+        az = acos(n.y/xylength);
+    ax = acos(xylength/nlength);
+    ax = n.z > 0 ? ax : -ax;
+    az = n.z > 0 ? -az : az;
+
+    return (aimY){ax, az};
+}
+
+
 #endif

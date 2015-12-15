@@ -4,8 +4,8 @@
 #include <pthread.h>
 #include "bmp.h"
 
-#define MAX_BOUNCE 20
-#define DIFFUSE_RES 30
+#define MAX_ITR 2
+#define DIFFUSE_RES 10
 
 typedef struct {
     int hit;
@@ -43,7 +43,7 @@ intersection intersectSphere(sphere* s, ray* r) {
 
 intersection intersectPlane(plane* p, ray* r) {
     float n = dot(p->n, FLOAT4_v(p->p.v -  r->p.v));
-    float d = dot(p->n, FLOAT4_v(-r->d.v));
+    float d = dot(p->n, FLOAT4_v(r->d.v));
     if (d == 0)
         return noHit();
     float r1 = n/d;
@@ -77,29 +77,33 @@ intersection intersectEntity(entity* e, ray* r) {
 float4 _traceRay(render_context* c, ray r, int num);
 
 float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
-    /*float deg_x = atan(n.x/n.y);
-    float deg_z = atan(n.z/n.y);
-    float sinx = sin(deg_x);
-    float cosx = cos(deg_x);
-    float sinz = sin(deg_z);
-    float cosz = cos(deg_z);
-
-
-    for (int i = 0; i < DIFFUSE_RES; i++) {
+    if (num > MAX_ITR)
+        return FLOAT4_Zero();
+    aimY aim = computeAimY(n);
+    int num_lights = 0;
+    float4 cor_total = FLOAT4_Zero();
+    for (int i = 1; i < DIFFUSE_RES; i++) {
         float deg_p = (i / (float)DIFFUSE_RES) * (M_PI);
         int max_j = cos(deg_p) * (DIFFUSE_RES * 4);
         float cos_p = cos(deg_p);
         float sin_p = sin(deg_p);
         for (int j = 0; j < max_j; j++) {
+            num_lights++;
             float deg_t = (j / (float)max_j) * (M_PI * 4);
             float x = sin(deg_t);
             float z = cos(deg_t);
             float4 v = FLOAT4_3f(x - (sin_p * x) , cos_p, z - (sin_p * z));
-            v = FLOAT4_3f(v.x * cosz, v.y * sinz, v.z * cosx)
-            float4 cor = _traceRay(c, (ray){p, v}, num + 1)
+            v = applyAimY(aim, v);
+            float4 cor = _traceRay(c, (ray){p, v}, num + 1);
+            cor = FLOAT4_v(cor.v * FLOAT4_f(dot(v, n)).v);
+            cor_total = FLOAT4_v(cor_total.v + cor.v);
         }
+    }
+    /*if (!isZero(cor_total)) {
+        printf("%u\n", num_lights);
+        print_float4(cor_total);
     }*/
-    return FLOAT4_Zero();
+    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights).v / 4));
 }
 
 float4 getBackground(ray r) {
@@ -107,7 +111,7 @@ float4 getBackground(ray r) {
 }
 
 float4 _traceRay(render_context* c, ray r, int num) {
-    if (num > MAX_BOUNCE)
+    if (num > MAX_ITR)
         return getBackground(r);
     LL_itr* itr = llInitIterator(c->entities);
     entity* e = (entity*)llGetNext(itr);
@@ -131,8 +135,16 @@ float4 _traceRay(render_context* c, ray r, int num) {
         e = (entity*)llGetNext(itr);
     }
     if (closest.hit) {
-        float4 reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1);
-        float4 diffuse_color = findDiffuse(c, closest.p, closest.n, num);
+        float4 reflect_color;
+        if (!isZero(closest.m->c_reflect))
+            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1);
+        else
+            reflect_color = FLOAT4_Zero();
+        float4 diffuse_color;
+        if (!isZero(closest.m->c_diffuse))
+            diffuse_color = findDiffuse(c, closest.p, closest.n, num);
+        else
+            diffuse_color = FLOAT4_Zero();
         return FLOAT4_v(closest.m->c_reflect.v * reflect_color.v +
                closest.m->c_diffuse.v * diffuse_color.v +
                closest.m->c_emissions.v);
@@ -158,7 +170,7 @@ color convertFloatToColor(float4 c) {
 
 color _renderPixel(render_context* c, int x, int y) {
     float rx = (x / (float)c->x) * 2 - 1.0f;
-    float ry = ((y / (float)c->y) * 2 - 1.0f) * (c->y / (float)c->x);
+    float ry = (((y / (float)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     float rz = 1.0f / tan(c->fov / 2.0f);
     float4 d = FLOAT4_3f(rx, ry, rz);
 //    print_float4(d);

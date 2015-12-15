@@ -12,8 +12,8 @@ int main(int argc, char** argv) {
             createSphere(FLOAT4_3f(0.0f, -0.3f, 20.0f), 2.3f,
                 (material) {
                     FLOAT4_3f(1.0f, 1.0f, 1.0f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
-                    FLOAT4_3f(0.1f, 0.1f, 0.1f)
+                    FLOAT4_3f(0.1f, 0.1f, 0.1f),
+                    FLOAT4_3f(0.05f, 0.05f, 0.05f)
                 }
             )
     );
@@ -40,17 +40,17 @@ int main(int argc, char** argv) {
                         FLOAT4_3f(0.0f, 1.0f, 0.0f),
                 (material) {
                     FLOAT4_3f(0.6f, 0.6f, 0.6f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
+                    FLOAT4_3f(1.0f, 1.0f, 1.0f),
                     FLOAT4_3f(0.2f, 0.2f, 0.2f)
                 }
             )
     );
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 10; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 100) * 5 - 250, -10.0f,  (i / 100) * 5 - 250), frand() + 0.5f,
+                 createSphere(FLOAT4_3f((i % 30) * 5 - 30, 10.0f,  (i / 30) * 5 - 30), frand() + 0.5f,
                 (material) {
                     FLOAT4_3f(0.8f, 0.8f, 0.8f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
+                    FLOAT4_3f(0.2f, 0.2f, 0.2f),
                     FLOAT4_3f(frand() * 0.3f, frand() * 0.3f, frand() * 0.3f)
                 })
         );

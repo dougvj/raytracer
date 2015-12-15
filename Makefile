@@ -3,7 +3,7 @@ WARNINGS= -Wall -Werror -Wfatal-errors
 CWARNINGS=
 CXXWARNINGS=
 INCLUDE=
-CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) -g
+CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) 
 CXXFLAGS = -MMD $(WARNINGS) $(CXXWARNINGS) $(INCLUDE)
 
 LDFLAGS= -lpthread -lm -L./libdatastruct -ldatastruct
@@ -18,7 +18,7 @@ EXECUTABLE=raytrace
 
 #compilers
 
-CC=gcc
+CC=gcc 
 CXX=g++
 #CC=icc -mmic
 #CXX=icc -mmic
@@ -70,7 +70,7 @@ ifdef DEBUG
 CFLAGS+= -g
 CXXFLAGS+= -g
 else
-CFLAGS+= -O3
+CFLAGS+= -O3 -march=native -mtune=native
 CXXFLAGS+= -O3
 endif
 

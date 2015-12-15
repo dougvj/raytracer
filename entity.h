@@ -8,11 +8,6 @@ typedef struct {
     float4 c_emissions;
 } material;
 
-inline int isZero(float4 f) {
-    if (f.x == 0.0f && f.y == 0.0f && f.z == 0.0f && f.w == 0.0f)
-        return 1;
-    return 0;
-}
 
 typedef struct {
     float4 p;
