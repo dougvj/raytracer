@@ -75,9 +75,9 @@ CXXFLAGS+= -g
 else ifdef PHI
 CFLAGS+= -O3 -mmic -mkl 
 else
-CFLAGS+= -O3 -march=native -mtune=native
-endif
+CFLAGS+= -O3 -march=native -mtune=native -ffast-math 
 CXXFLAGS+= -O3
+endif
 
 ifdef CLANG
 CC=clang

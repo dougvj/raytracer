@@ -29,7 +29,7 @@ typedef struct {
 render_context* createRenderContext();
 void addEntity(render_context* rc, entity* e);
 entity* createSphere(float4 pos, float r, material m);
-entity* createPlane(float4 pos, float4 norm, material m);
+entity* createPlane(float4 pos, float4 norm, material m1, material m2);
 void renderScene(render_context* c, int x, int y, int num_threads);
 
 #endif

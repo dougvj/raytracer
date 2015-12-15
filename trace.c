@@ -5,21 +5,22 @@
 #include "bmp.h"
 
 #define MAX_ITR 2
-#define DIFFUSE_RES 10
+#define DIFFUSE_RES_PER_DEG_ARC 0.5f;
 
 typedef struct {
     int hit;
     float4 n;
     float4 p;
     material* m;
+    entity* e;
 } intersection;
 
 intersection noHit() {
-    return (intersection){0, FLOAT4_Zero(), FLOAT4_Zero(), NULL};
+    return (intersection){0, FLOAT4_Zero(), FLOAT4_Zero(), NULL, NULL};
 }
 
-intersection Hit(float4 pos, float4 norm, material* m) {
-    return (intersection){1, norm, pos, m};
+intersection Hit(float4 pos, float4 norm, material* m, entity* e) {
+    return (intersection){1, norm, pos, m, e};
 }
 
 intersection intersectSphere(sphere* s, ray* r) {
@@ -36,7 +37,7 @@ intersection intersectSphere(sphere* s, ray* r) {
         float t = ((-b) - sqrt(disc))/(2*a);
         float4 p = FLOAT4_3f(r->p.x + t * r->d.x, r->p.y + t * r->d.y, r->p.z + t * r->d.z);
         float4 n = FLOAT4_v(s->p.v - p.v);
-        return Hit(p, n, &s->m);
+        return Hit(p, n, &s->m, s->e);
     }
     return noHit();
 }
@@ -51,7 +52,12 @@ intersection intersectPlane(plane* p, ray* r) {
     if (r1 <= 1)
         return noHit();
     float4 pos =  FLOAT4_v(r->p.v + FLOAT4_f(r1).v * r->d.v);
-    return Hit(pos, p->n, &p->m);
+    material* m;
+    if ((int)(floor(pos.x)) % 2 == 0 &&  (int)(floor(pos.z)) % 2 == 0)
+        m = &p->m1;
+    else
+        m = &p->m2;
+    return Hit(pos, p->n, m, p->e);
 }
 
 intersection intersectTriangle(triangle* t, ray* r) {
@@ -74,9 +80,9 @@ intersection intersectEntity(entity* e, ray* r) {
     return noHit();
 }
 
-float4 _traceRay(render_context* c, ray r, int num);
+float4 _traceRay(render_context* c, ray r, int num, entity* hit);
 
-float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
+/*float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
     if (num > MAX_ITR)
         return FLOAT4_Zero();
     aimY aim = computeAimY(n);
@@ -99,18 +105,37 @@ float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
             cor_total = FLOAT4_v(cor_total.v + cor.v);
         }
     }
-    /*if (!isZero(cor_total)) {
-        printf("%u\n", num_lights);
-        print_float4(cor_total);
-    }*/
-    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights).v / 4));
+    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights / 4).v / 4));
+}*/
+float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
+    if (num > MAX_ITR)
+        return FLOAT4_Zero();
+    LL_itr* itr = llInitIterator(c->entities);
+    entity* e = (entity*)llGetNext(itr);
+    float4 cor_total = FLOAT4_Zero();
+    float4 cor;
+    while (e) {
+        float4 light;
+        ray r;
+        float incidence;
+        switch(e->type) {
+            case SPHERE:
+                light = FLOAT4_v(e->s->p.v - p.v);
+                r = (ray){p, light};
+                incidence = dot(normalize(light), normalize(n)) * 0.2f;
+                cor = _traceRay(c, r, num + 1, e);
+                cor_total = FLOAT4_v(cor.v * FLOAT4_f(incidence).v + cor_total.v);
+        }
+        e = (entity*)llGetNext(itr);
+    }
+    return cor_total;
 }
 
 float4 getBackground(ray r) {
     return FLOAT4_4f(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-float4 _traceRay(render_context* c, ray r, int num) {
+float4 _traceRay(render_context* c, ray r, int num, entity* hit) {
     if (num > MAX_ITR)
         return getBackground(r);
     LL_itr* itr = llInitIterator(c->entities);
@@ -135,9 +160,11 @@ float4 _traceRay(render_context* c, ray r, int num) {
         e = (entity*)llGetNext(itr);
     }
     if (closest.hit) {
+        if (e && closest.e != e)
+            return FLOAT4_Zero();
         float4 reflect_color;
         if (!isZero(closest.m->c_reflect))
-            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1);
+            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1, e);
         else
             reflect_color = FLOAT4_Zero();
         float4 diffuse_color;
@@ -175,7 +202,7 @@ color _renderPixel(render_context* c, int x, int y) {
     float4 d = FLOAT4_3f(rx, ry, rz);
 //    print_float4(d);
     ray r = {FLOAT4_3f(0.0f, 0.0f, 0.0f), d};
-    return convertFloatToColor(_traceRay(c, r, 0));
+    return convertFloatToColor(_traceRay(c, r, 0, NULL));
 }
 
 
@@ -216,17 +243,20 @@ entity* createSphere(float4 pos, float r, material m) {
     e->s = s;
     e->type = SPHERE;
     e->s->m = m;
+    e->s->e = e;
     return e;
 }
 
-entity* createPlane(float4 pos, float4 norm, material m) {
+entity* createPlane(float4 pos, float4 norm, material m1, material m2) {
     plane* p = malloc(sizeof(plane));
     p->p = pos;
     p->n = norm;
     entity* e = malloc(sizeof(entity));
     e->p = p;
     e->type = PLANE;
-    e->p->m = m;
+    e->p->m2 = m2;
+    e->p->m2 = m2;
+    e->p->e = e;
     return e;
 }
 

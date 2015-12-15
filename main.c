@@ -41,13 +41,18 @@ int main(int argc, char** argv) {
                 (material) {
                     FLOAT4_3f(0.6f, 0.6f, 0.6f),
                     FLOAT4_3f(1.0f, 1.0f, 1.0f),
-                    FLOAT4_3f(0.2f, 0.2f, 0.2f)
+                    FLOAT4_3f(0.0f, 0.0f, 0.0f)
+                },
+                (material) {
+                    FLOAT4_3f(0.6f, 0.6f, 0.6f),
+                    FLOAT4_3f(1.0f, 1.0f, 1.0f),
+                    FLOAT4_3f(0.3f, 0.3f, 0.3f)
                 }
             )
     );
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 25; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 30) * 5 - 30, 10.0f,  (i / 30) * 5 - 30), frand() + 0.5f,
+                 createSphere(FLOAT4_3f((i % 5) * 5 - 25, 10.0f,  (i / 5) * 5 - 25), frand() + 0.5f,
                 (material) {
                     FLOAT4_3f(0.8f, 0.8f, 0.8f),
                     FLOAT4_3f(0.2f, 0.2f, 0.2f),
@@ -55,6 +60,6 @@ int main(int argc, char** argv) {
                 })
         );
     }
-    renderScene(rc, 7680, 4320, 240);
+    renderScene(rc, 15360, 8640, 240);
     return 0;
 }
