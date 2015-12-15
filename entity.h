@@ -8,6 +8,7 @@ typedef struct {
     float4 c_reflect;
     float4 c_diffuse;
     float4 c_emissions;
+    float intensity;
 } material;
 
 

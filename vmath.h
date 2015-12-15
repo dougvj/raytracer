@@ -2,16 +2,16 @@
 #define VMATH_H
 #include "math.h"
 #include <stdio.h>
-typedef float v4sf __attribute__((vector_size(16)));
+typedef double v4sd __attribute__((vector_size(32)));
 
 typedef union {
-    v4sf v;
-    float e[4];
+    v4sd v;
+    double e[4];
     struct {
-        float x;
-        float y;
-        float z;
-        float w;
+        double x;
+        double y;
+        double z;
+        double w;
     };
 } float4;
 
@@ -29,22 +29,22 @@ inline float4 cross(float4 a, float4 b) {
     return (float4){.e = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}};
 }
 
-inline float dot(float4 a, float4 b) {
+inline double dot(float4 a, float4 b) {
     float4 c = {.v = a.v * b.v};
     return (c.e[0] + c.e[1] + c.e[2] + c.e[3]);
 }
 
-inline float length(float4 a) {
+inline double length(float4 a) {
     return sqrt(dot(a, a));
 }
 
 inline float4 normalize(float4 a) {
-    float l = length(a);
+    double l = length(a);
     return (float4){.v = a.v / FLOAT4_f(l).v};
 }
 
 inline float4 reflect(float4 v, float4 n) {
-    float d = dot(v, n);
+    double d = dot(v, n);
     return (float4){.v = (v.v - (FLOAT4_f(d).v * n.v * FLOAT4_f(2.0f).v))};
 }
 
@@ -53,42 +53,42 @@ inline int isZero(float4 f) {
 }
 
 typedef struct {
-    float ax, az;
+    double ax, az;
 } aimY;
 
-inline float4 rotate(float4 point, float4 axis, float theta) {
-    float x = point.x;
-    float y = point.y;
-    float z = point.z;
-    float u = axis.x;
-    float v = axis.y;
-    float w = axis.z;
+inline float4 rotate(float4 point, float4 axis, double theta) {
+    double x = point.x;
+    double y = point.y;
+    double z = point.z;
+    double u = axis.x;
+    double v = axis.y;
+    double w = axis.z;
     return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
 
 }
 
-inline float4 rotateX(float4 point, float theta) {
-    float x = point.x;
-    float y = point.y;
-    float z = point.z;
-    const float u = 1;
-    const float v = 0;
-    const float w = 0;
+inline float4 rotateX(float4 point, double theta) {
+    double x = point.x;
+    double y = point.y;
+    double z = point.z;
+    const double u = 1;
+    const double v = 0;
+    const double w = 0;
     return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
 
 }
 
-inline float4 rotateZ(float4 point, float theta) {
-    float x = point.x;
-    float y = point.y;
-    float z = point.z;
-    const float u = 0;
-    const float v = 0;
-    const float w = 1;
+inline float4 rotateZ(float4 point, double theta) {
+    double x = point.x;
+    double y = point.y;
+    double z = point.z;
+    const double u = 0;
+    const double v = 0;
+    const double w = 1;
     return FLOAT4_3f((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
@@ -102,9 +102,9 @@ inline float4 applyAimY(aimY a, float4 p) {
 }
 
 inline aimY computeAimY(float4 n) {
-    float nlength = length(n);
-    float xylength = length(FLOAT4_3f(n.x, n.y, 0.0f));
-    float ax, az;
+    double nlength = length(n);
+    double xylength = length(FLOAT4_3f(n.x, n.y, 0.0f));
+    double ax, az;
     if (xylength == 0)
         az = n.x > 0 ? M_PI/2 : -M_PI/2;
     else

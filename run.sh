@@ -1,1 +1,3 @@
-./raytrace 1920 1080 24
+make
+./raytrace 15360 8640 48
+mirage ./render.bmp

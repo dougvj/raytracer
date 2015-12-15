@@ -16,57 +16,82 @@ int main(int argc, char** argv) {
     int h = atoi(argv[2]);
     render_context* rc = createRenderContext();
     addEntity(rc,
-            createSphere(FLOAT4_3f(0.0f, -0.3f, 20.0f), 2.3f,
+            createSphere(FLOAT4_3f(0.0, 4.0, 17.0), 2.3,
                 (material) {
-                    FLOAT4_3f(1.0f, 1.0f, 1.0f),
-                    FLOAT4_3f(0.1f, 0.1f, 0.1f),
-                    FLOAT4_3f(0.05f, 0.05f, 0.05f)
+                    FLOAT4_3f(1.0, 1.0, 1.0),
+                    FLOAT4_3f(0.1, 0.1, 0.1),
+                    FLOAT4_3f(0.05f, 0.05f, 0.05f),
+                    1.0
                 }
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(-3.0f, -3.0f, 15.0f), 1.5f,
+            createSphere(FLOAT4_3f(0.0, 0.0, 20.2), 1.5,
                 (material) {
-                    FLOAT4_3f(0.6f, 0.6f, 0.6f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
-                    FLOAT4_3f(0.0f, 0.0f, 1.0f)
+                    FLOAT4_3f(0.6, 0.6, 0.6),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(0.0, 0.0, 1.0),
+                    20.0
                 }
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(3.0f, 3.0f, 15.0f), 1.5f,
+            createSphere(FLOAT4_3f(2000.0, 10000.0, -20000.2), 10.0,
                 (material) {
-                    FLOAT4_3f(0.6f, 0.6f, 0.6f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f),
-                    FLOAT4_3f(1.0f, 0.0f, 0.0f)
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(1.0, 1.0, 1.0),
+                    400000000.0
                 }
             )
     );
     addEntity(rc,
-            createPlane(FLOAT4_3f(0.0f, -5.0f, 0.0f),
-                        FLOAT4_3f(0.0f, 1.0f, 0.0f),
+            createSphere(FLOAT4_3f(-3.0, 0.0, 15.0), 1.5,
                 (material) {
-                    FLOAT4_3f(0.6f, 0.6f, 0.6f),
-                    FLOAT4_3f(1.0f, 1.0f, 1.0f),
-                    FLOAT4_3f(0.0f, 0.0f, 0.0f)
+                    FLOAT4_3f(0.6, 0.6, 0.6),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(0.0, 1.0, 0.0),
+                    20.0,
+                }
+            )
+    );
+    addEntity(rc,
+            createSphere(FLOAT4_3f(3.0, 0.0, 15.0), 1.5,
+                (material) {
+                    FLOAT4_3f(0.6, 0.6, 0.6),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    FLOAT4_3f(1.0, 0.0, 0.0),
+                    20.0,
+                }
+            )
+    );
+    addEntity(rc,
+            createPlane(FLOAT4_3f(0.0, -5.0, 0.0),
+                        FLOAT4_3f(0.0, 1.0, 0.0),
+                (material) {
+                    FLOAT4_3f(0.6, 0.6, 0.6),
+                    FLOAT4_3f(1.0, 1.0, 1.0),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    0.0,
                 },
                 (material) {
-                    FLOAT4_3f(0.6f, 0.6f, 0.6f),
-                    FLOAT4_3f(1.0f, 1.0f, 1.0f),
-                    FLOAT4_3f(0.3f, 0.3f, 0.3f)
+                    FLOAT4_3f(0.8, 0.8, 0.8),
+                    FLOAT4_3f(0.3, 0.3, 0.3),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
+                    0.0,
                 }
             )
     );
-    for (int i = 0; i < 25; i++) {
+/*    for (int i = 0; i < 25; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5f, 10.0f,  (i / 5) * 5 - 12.5f), frand() + 0.5f,
+                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 5.0,  (i / 5) * 5 ), frand() + 1.0,
                 (material) {
-                    FLOAT4_3f(0.8f, 0.8f, 0.8f),
-                    FLOAT4_3f(0.2f, 0.2f, 0.2f),
-                    FLOAT4_3f(frand() * 0.3f, frand() * 0.3f, frand() * 0.3f)
+                    FLOAT4_3f(0.8, 0.8, 0.8),
+                    FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
+                    FLOAT4_3f(0.2, 0.f, 0.0),
                 })
         );
-    }
+    }*/
     renderScene(rc, w, h, num_threads);
     return 0;
 }
