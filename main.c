@@ -74,12 +74,12 @@ int main(int argc, char** argv) {
     );
     for (int i = 0; i < 25; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, -4.0,  (i / 5) * 5 ), frand() + 1.0,
+                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 6.0,  (i / 5) * 5 ), frand() + 1.0,
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
                     FLOAT4_3f(0.3, 0.3, 0.3),
                     FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    100.0
+                    3.0
                 })
         );
     }
