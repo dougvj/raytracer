@@ -25,7 +25,7 @@ intersection intersectSphere(sphere* s, ray* r) {
        return noHit();
     float a = dot(r->d, r->d);
     float4 rs = FLOAT4_v(r->p.v - s->p.v);
-    float b = dot(FLOAT4_v(2.0f * r->d.v), rs);
+    float b = dot(FLOAT4_v(FLOAT4_f(2.0f).v * r->d.v), rs);
     float c = dot(rs, rs) - s->r*s->r;
     float disc = (b*b) - (4 * a * c);
     //print_float4(r->d);
@@ -48,7 +48,7 @@ intersection intersectPlane(plane* p, ray* r) {
     //printf("%f\n", r1);
     if (r1 <= 1)
         return noHit();
-    float4 pos =  FLOAT4_v(r->p.v + r1 * r->d.v);
+    float4 pos =  FLOAT4_v(r->p.v + FLOAT4_f(r1).v * r->d.v);
     return Hit(pos, p->n, &p->m);
 }
 

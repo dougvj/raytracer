@@ -41,6 +41,6 @@ int main(int argc, char** argv) {
                 }
             )
     );
-    renderScene(rc, 7680, 4320, 24);
+    renderScene(rc, 7680, 4320, 240);
     return 0;
 }

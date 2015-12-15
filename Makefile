@@ -20,6 +20,8 @@ EXECUTABLE=raytrace
 
 CC=gcc
 CXX=g++
+#CC=icc -mmic
+#CXX=icc -mmic
 
 
 

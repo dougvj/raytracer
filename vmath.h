@@ -16,6 +16,7 @@ typedef union {
 } float4;
 
 #define FLOAT4_3f(x, y, z) (float4){.v = {x, y, z, 0.0f}}
+#define FLOAT4_f(x) (float4){.v = {x, x, x, x}}
 #define FLOAT4_4f(x, y, z, w) (float4){.v = {x, y, z, w}}
 #define FLOAT4_v(x) (float4){.v = x}
 #define FLOAT4_Zero() (float4){.v = {0.0f, 0.0f, 0.0f, 0.0f}}
@@ -39,11 +40,12 @@ inline float length(float4 a) {
 
 inline float4 normalize(float4 a) {
     float l = length(a);
-    return (float4){.v = a.v / l};
+    return (float4){.v = a.v / FLOAT4_f(l).v};
 }
 
 inline float4 reflect(float4 v, float4 n) {
-    return (float4){.v = (v.v - (dot(v, n) * n.v * 2.0f))};
+    float d = dot(v, n);
+    return (float4){.v = (v.v - (FLOAT4_f(d).v * n.v * FLOAT4_f(2.0f).v))};
 }
 
 #endif
