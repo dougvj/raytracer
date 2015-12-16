@@ -217,18 +217,19 @@ void _startRenderThread(thread_context* c) {
 }
 
 render_context* createRenderContext() {
-    render_context* rc = malloc(sizeof(render_context));
+    render_context* rc;
+    rc = aligned_malloc(64, sizeof(render_context));
     rc->entities = llCreate();
-    rc->fov = 1.5708f;
+    rc->fov = 1.5708;
     return rc;
 }
 
 
 entity* createSphere(vector pos, double r, material m) {
-    sphere* s = malloc(sizeof(sphere));
+    sphere* s = aligned_malloc(64, sizeof(sphere));
     s->p = pos;
     s->r = r;
-    entity* e = malloc(sizeof(entity));
+    entity* e = aligned_malloc(64, sizeof(entity));
     e->s = s;
     e->type = SPHERE;
     e->s->m = m;
@@ -237,10 +238,10 @@ entity* createSphere(vector pos, double r, material m) {
 }
 
 entity* createPlane(vector pos, vector norm, material m1, material m2) {
-    plane* p = malloc(sizeof(plane));
+    plane* p = aligned_malloc(64, sizeof(plane));
     p->p = pos;
     p->n = norm;
-    entity* e = malloc(sizeof(entity));
+    entity* e = aligned_malloc(64, sizeof(entity));
     e->p = p;
     e->type = PLANE;
     e->p->m1 = m1;
@@ -258,7 +259,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads) {
     rc->y = y;
     rc->num_threads = num_threads;
     color* output;
-    output = malloc(sizeof(color) * (x * y));
+    output = aligned_malloc(64, sizeof(color) * (x * y));
     memset(output, 0, sizeof(color) * (x * y));
     rc->output = output;
     pthread_t threads[num_threads];

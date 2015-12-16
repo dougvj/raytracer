@@ -3,6 +3,7 @@
 #include "math.h"
 #include <stdio.h>
 typedef double vector __attribute__((vector_size(32)));
+#include <stdlib.h>
 
 typedef union {
     vector v;
@@ -14,6 +15,12 @@ typedef union {
         double w;
     };
 } vector_accessor;
+
+inline void* aligned_malloc(int aligned, size_t size) {
+    void* v;
+    posix_memalign((void**)&v, aligned, size);
+    return v;
+}
 
 
 

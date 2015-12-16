@@ -6,8 +6,8 @@
 
 
 typedef struct {
-    vector p;
-    vector d;
+    vector __attribute__((aligned(64))) p;
+    vector __attribute__((aligned(64))) d;
 } ray;
 
 typedef union {
