@@ -75,12 +75,12 @@ CXXFLAGS+= -g
 else ifdef PHI
 CFLAGS+= -O3 -mmic -mkl 
 else
-CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-error=psabi
+CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-error=psabi -Wno-maybe-uninitialized
 CXXFLAGS+= -O3
 endif
 
 ifdef CLANG
-CC=clang
+CC=clang -Wno-unknown-warning-option 
 CXX=clang
 endif
 

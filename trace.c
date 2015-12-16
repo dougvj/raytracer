@@ -5,9 +5,9 @@
 #include "bmp.h"
 #include <string.h>
 
-#define MAX_ITR 2
+#define MAX_ITR 4
 #define DIFFUSE_RES_PER_DEG_ARC 0.5f;
-
+#define FOV_RADS 1.5708
 typedef struct {
     int hit;
     vector n;
@@ -217,10 +217,9 @@ void _startRenderThread(thread_context* c) {
 }
 
 render_context* createRenderContext() {
-    render_context* rc;
-    rc = aligned_malloc(64, sizeof(render_context));
+    render_context* rc = aligned_malloc(64, sizeof(render_context));
     rc->entities = llCreate();
-    rc->fov = 1.5708;
+    rc->fov = FOV_RADS;
     return rc;
 }
 
