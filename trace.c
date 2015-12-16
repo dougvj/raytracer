@@ -5,56 +5,53 @@
 #include "bmp.h"
 #include <string.h>
 
-#define MAX_ITR 5
+#define MAX_ITR 2
 #define DIFFUSE_RES_PER_DEG_ARC 0.5f;
 
 typedef struct {
     int hit;
-    float4 n;
-    float4 p;
+    vector n;
+    vector p;
     material* m;
     entity* e;
 } intersection;
 
 intersection noHit() {
-    return (intersection){0, FLOAT4_Zero(), FLOAT4_Zero(), NULL, NULL};
+    return (intersection){0, ZERO_VECTOR(), ZERO_VECTOR(), NULL, NULL};
 }
 
-intersection Hit(float4 pos, float4 norm, material* m, entity* e) {
+intersection Hit(vector pos, vector norm, material* m, entity* e) {
     return (intersection){1, norm, pos, m, e};
 }
 
 intersection intersectSphere(sphere* s, ray* r) {
-    if (dot(r->d, FLOAT4_v(s->p.v - r->p.v)) <= 0)
+    if (dot(r->d, s->p - r->p) <= 0)
        return noHit();
     double a = dot(r->d, r->d);
-    float4 rs = FLOAT4_v(r->p.v - s->p.v);
-    double b = dot(FLOAT4_v(FLOAT4_f(2.0f).v * r->d.v), rs);
+    vector rs = r->p - s->p;
+    double b = dot(SCALAR(2.0) * r->d, rs);
     double c = dot(rs, rs) - s->r*s->r;
     double disc = (b*b) - (4 * a * c);
-    //print_float4(r->d);
     if (disc >= 0) {
-//        fprintf(stderr, "%f\n", disc);
         double t = ((-b) - sqrt(disc))/(2*a);
-        float4 p = FLOAT4_3f(r->p.x + t * r->d.x, r->p.y + t * r->d.y, r->p.z + t * r->d.z);
-        float4 n = FLOAT4_v(p.v - s->p.v);
+        vector p = VEC3F(COMPONENT(r->p).x + t * COMPONENT(r->d).x, COMPONENT(r->p).y + t * COMPONENT(r->d).y, COMPONENT(r->p).z + t * COMPONENT(r->d).z);
+        vector n = p - s->p;
         return Hit(p, n, &s->m, s->e);
     }
     return noHit();
 }
 
 intersection intersectPlane(plane* p, ray* r) {
-    double n = dot(p->n, FLOAT4_v(p->p.v -  r->p.v));
-    double d = dot(p->n, FLOAT4_v(r->d.v));
+    double n = dot(p->n, (p->p -  r->p));
+    double d = dot(p->n, r->d);
     if (d == 0)
         return noHit();
     double r1 = n/d;
-    //printf("%f\n", r1);
     if (r1 <= 1)
         return noHit();
-    float4 pos =  FLOAT4_v(r->p.v + FLOAT4_f(r1).v * r->d.v);
+    vector pos =  (r->p + SCALAR(r1) * r->d);
     material* m;
-    if (abs((int)(floor(pos.x))) % 2 ==  abs((int)(floor(pos.z))) % 2 )
+    if (abs((int)(floor(COMPONENT(pos).x))) % 2 ==  abs((int)(floor(COMPONENT(pos).z))) % 2 )
         m = &p->m1;
     else
         m = &p->m2;
@@ -81,41 +78,42 @@ intersection intersectEntity(entity* e, ray* r) {
     return noHit();
 }
 
-float4 _traceRay(render_context* c, ray r, int num, entity* hit);
+vector _traceRay(render_context* c, ray r, int num, entity* hit);
 
 
-float4 findDiffuse(render_context* c, float4 p, float4 n, int num, entity* ignore) {
+vector findDiffuse(render_context* c, vector p, vector n, int num, entity* ignore) {
     if (num > MAX_ITR)
-        return FLOAT4_Zero();
+        return ZERO_VECTOR();
     LL_itr* itr = llInitIterator(c->entities);
     entity* e = (entity*)llGetNext(itr);
-    float4 cor_total = FLOAT4_Zero();
-    float4 cor = FLOAT4_Zero();
+    vector cor_total = ZERO_VECTOR();
+    vector cor = ZERO_VECTOR();
     double distance, square;
     while (e) {
         if (e == ignore)
             goto next;
-        float4 light;
+        vector light;
         ray r;
         double incidence;
         switch(e->type) {
             case SPHERE:
-                light = FLOAT4_v(e->s->p.v - p.v);
+                light = (e->s->p - p);
                 r = (ray){p, light};
                 incidence = dot(normalize(light), normalize(n));
                 if (incidence < 0)
                     incidence *= -1;
-//                    return FLOAT4_Zero();
-                //printf("%f\n", incidence);
+//                    return ZERO_VECTOR();
                 cor = _traceRay(c, r, num + 2, e);
                 //Apply intensity
-                cor.x *= cor.w;
-                cor.y *= cor.w;
-                cor.z *= cor.w;
+                vector_accessor cor_a = COMPONENT(cor);
+                cor_a.x *= cor_a.w;
+                cor_a.y *= cor_a.w;
+                cor_a.z *= cor_a.w;
+                cor = cor_a.v;
                 distance = length(light);
                 square = 1 / (distance * distance);
-                cor = FLOAT4_v(cor.v * FLOAT4_f(square).v);
-                cor_total = FLOAT4_v(cor.v * FLOAT4_f(incidence).v  + cor_total.v);
+                cor = (cor * SCALAR(square));
+                cor_total = (cor * SCALAR(incidence)  + cor_total);
         }
 next:
         e = (entity*)llGetNext(itr);
@@ -123,11 +121,11 @@ next:
     return cor_total;
 }
 
-float4 getBackground(ray r) {
-    return FLOAT4_4f(0.0f, 0.0f, 0.0f, 0.0f);
+vector getBackground(ray r) {
+    return VEC4F(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-float4 _traceRay(render_context* c, ray r, int num, entity* hit) {
+vector _traceRay(render_context* c, ray r, int num, entity* hit) {
     if (num > MAX_ITR)
         return getBackground(r);
     LL_itr* itr = llInitIterator(c->entities);
@@ -137,7 +135,7 @@ float4 _traceRay(render_context* c, ray r, int num, entity* hit) {
     while(e) {
         intersection i = intersectEntity(e, &r);
         if (i.hit) {
-            double new_distance = length(FLOAT4_v(i.p.v - r.p.v));
+            double new_distance = length((i.p - r.p));
             if(closest.hit) {
                 if (new_distance < distance) {
                     closest = i;
@@ -153,26 +151,26 @@ float4 _traceRay(render_context* c, ray r, int num, entity* hit) {
     }
     if (closest.hit) {
         if (e && closest.e != e)
-            return FLOAT4_Zero();
-        float4 reflect_color;
+            return ZERO_VECTOR();
+        vector reflect_color;
         if (!isZero(closest.m->c_reflect))
             reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1, e);
         else
-            reflect_color = FLOAT4_Zero();
-        float4 diffuse_color;
+            reflect_color = ZERO_VECTOR();
+        vector diffuse_color;
         if (!isZero(closest.m->c_diffuse))
             diffuse_color = findDiffuse(c, closest.p, closest.n, num, closest.e);
         else
-            diffuse_color = FLOAT4_Zero();
-        return FLOAT4_v(closest.m->c_reflect.v * reflect_color.v +
-               closest.m->c_diffuse.v * diffuse_color.v +
-               closest.m->c_emissions.v + FLOAT4_4f(0.0f, 0.0f, 0.0f, closest.m->intensity).v);
+            diffuse_color = ZERO_VECTOR();
+        return (closest.m->c_reflect * reflect_color +
+               closest.m->c_diffuse * diffuse_color +
+               closest.m->c_emissions + VEC4F(0.0f, 0.0f, 0.0f, closest.m->intensity));
     }
     return getBackground(r);
 }
 
-color convertFloatToColor(float4 c) {
-//    print_float4(c);
+color convertFloatToColor(vector cor) {
+    vector_accessor c = COMPONENT(cor);
     color co;
     if (c.x > 1.0f)
         c.x = 1.0f;
@@ -183,7 +181,6 @@ color convertFloatToColor(float4 c) {
     co.r = c.x * 255;
     co.g = c.y * 255;
     co.b = c.z * 255;
-//    fprintf(stderr, "color = {%u, %u, %u}\n", co.r, co.g, co.b);
     return co;
 }
 
@@ -191,9 +188,8 @@ color _renderPixel(render_context* c, int x, int y) {
     double rx = (x / (double)c->x) * 2 - 1.0f;
     double ry = (((y / (double)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     double rz = 1.0f / tan(c->fov / 2.0f);
-    float4 d = FLOAT4_3f(rx, ry, rz);
-//    print_float4(d);
-    ray r = {FLOAT4_3f(0.0f, 0.0f, 0.0f), d};
+    vector d = VEC3F(rx, ry, rz);
+    ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
     return convertFloatToColor(_traceRay(c, r, 0, NULL));
 }
 
@@ -228,7 +224,7 @@ render_context* createRenderContext() {
 }
 
 
-entity* createSphere(float4 pos, double r, material m) {
+entity* createSphere(vector pos, double r, material m) {
     sphere* s = malloc(sizeof(sphere));
     s->p = pos;
     s->r = r;
@@ -240,7 +236,7 @@ entity* createSphere(float4 pos, double r, material m) {
     return e;
 }
 
-entity* createPlane(float4 pos, float4 norm, material m1, material m2) {
+entity* createPlane(vector pos, vector norm, material m1, material m2) {
     plane* p = malloc(sizeof(plane));
     p->p = pos;
     p->n = norm;

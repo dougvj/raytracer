@@ -6,8 +6,8 @@
 
 
 typedef struct {
-    float4 p;
-    float4 d;
+    vector p;
+    vector d;
 } ray;
 
 typedef union {
@@ -28,8 +28,8 @@ typedef struct {
 
 render_context* createRenderContext();
 void addEntity(render_context* rc, entity* e);
-entity* createSphere(float4 pos, double r, material m);
-entity* createPlane(float4 pos, float4 norm, material m1, material m2);
+entity* createSphere(vector pos, double r, material m);
+entity* createPlane(vector pos, vector norm, material m1, material m2);
 void renderScene(render_context* c, int x, int y, int num_threads);
 
 #endif

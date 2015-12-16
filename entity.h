@@ -5,33 +5,33 @@
 typedef struct entity_t entity;
 
 typedef struct {
-    float4 c_reflect;
-    float4 c_diffuse;
-    float4 c_emissions;
+    vector c_reflect;
+    vector c_diffuse;
+    vector c_emissions;
     float intensity;
 } material;
 
 
 typedef struct {
-    float4 p;
+    vector p;
     float r;
     material m;
     entity* e;
 } sphere;
 
 typedef struct {
-    float4 p;
-    float4 n;
+    vector p;
+    vector n;
     material m1;
     material m2;
     entity* e;
 } plane;
 
 typedef struct {
-    float4 v1;
-    float4 v2;
-    float4 v3;
-    float4 n;
+    vector v1;
+    vector v2;
+    vector v3;
+    vector n;
     material m;
     entity* e;
 } triangle;

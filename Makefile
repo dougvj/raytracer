@@ -75,7 +75,7 @@ CXXFLAGS+= -g
 else ifdef PHI
 CFLAGS+= -O3 -mmic -mkl 
 else
-CFLAGS+= -O3 -march=native -mtune=native -ffast-math 
+CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-error=psabi
 CXXFLAGS+= -O3
 endif
 
