@@ -17,11 +17,6 @@ typedef union {
     };
 } vector_accessor;
 
-inline void* aligned_malloc(int aligned, size_t size) {
-    void* v;
-    posix_memalign((void**)&v, aligned, size);
-    return v;
-}
 
 
 inline void* aligned_malloc(int align, size_t size) {
