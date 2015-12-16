@@ -21,6 +21,7 @@ typedef struct {
      int num_threads;
      int x;
      int y;
+     int max_iterations;
      double fov;
      LL* entities;
      color* output;
@@ -30,6 +31,6 @@ render_context* createRenderContext();
 void addEntity(render_context* rc, entity* e);
 entity* createSphere(vector pos, double r, material m);
 entity* createPlane(vector pos, vector norm, material m1, material m2);
-void renderScene(render_context* c, int x, int y, int num_threads);
+void renderScene(render_context* c, int x, int y, int num_threads, int max_iterations);
 
 #endif

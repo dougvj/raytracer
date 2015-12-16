@@ -72,7 +72,8 @@ set_test:
 ifdef DEBUG
 CFLAGS+= -g
 CXXFLAGS+= -g
-else ifdef PHI
+endif
+ifdef PHI
 CFLAGS+= -O3 -mmic -mkl 
 else
 CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialized

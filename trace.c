@@ -5,7 +5,6 @@
 #include "bmp.h"
 #include <string.h>
 
-#define MAX_ITR 1
 #define DIFFUSE_RES_PER_DEG_ARC 0.5f;
 #define FOV_RADS 1.5708
 typedef struct {
@@ -79,11 +78,11 @@ intersection intersectEntity(entity* e, ray r) {
     return noHit();
 }
 
-vector _traceRay(render_context* c, ray r, int num, entity* hit);
+vector _traceRay(render_context* c, ray r, int num, int max, entity* hit);
 
 
-vector findDiffuse(render_context* c, vector p, vector n, int num, entity* ignore) {
-    if (num > MAX_ITR)
+vector findDiffuse(render_context* c, vector p, vector n, int num, int max, entity* ignore) {
+    if (num > max)
         return ZERO_VECTOR();
     LL_itr* itr = llInitIterator(c->entities);
     entity* e = (entity*)llGetNext(itr);
@@ -99,20 +98,21 @@ vector findDiffuse(render_context* c, vector p, vector n, int num, entity* ignor
         switch(e->type) {
             case SPHERE:
                 light = (e->s->p - p);
+                distance = length(light);
+                square = 1 / (distance * distance);
+                if (square * e->s->m.intensity < 0.01)
+                    goto next;
                 r = (ray){p, light};
                 incidence = dot(normalize(light), normalize(n));
                 if (incidence < 0)
                     incidence *= -1;
-//                    return ZERO_VECTOR();
-                cor = _traceRay(c, r, num + 2, e);
+                cor = _traceRay(c, r, 1, 1, e);
                 //Apply intensity
                 vector_accessor cor_a = COMPONENT(cor);
                 cor_a.x *= cor_a.w;
                 cor_a.y *= cor_a.w;
                 cor_a.z *= cor_a.w;
                 cor = cor_a.v;
-                distance = length(light);
-                square = 1 / (distance * distance);
                 cor = (cor * SCALAR(square));
                 cor_total = (cor * SCALAR(incidence)  + cor_total);
         }
@@ -126,8 +126,8 @@ vector getBackground(ray r) {
     return VEC4F(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-vector _traceRay(render_context* c, ray r, int num, entity* hit) {
-    if (num > MAX_ITR)
+vector _traceRay(render_context* c, ray r, int num, int max, entity* hit) {
+    if (num > max)
         return getBackground(r);
     LL_itr* itr = llInitIterator(c->entities);
     entity* e = (entity*)llGetNext(itr);
@@ -154,16 +154,16 @@ vector _traceRay(render_context* c, ray r, int num, entity* hit) {
         e = (entity*)llGetNext(itr);
     }
     if (closest.hit) {
-        if (e && closest.e != e)
+        if (hit && closest.e != hit)
             return ZERO_VECTOR();
         vector reflect_color;
         if (!isZero(closest.m->c_reflect))
-            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1, e);
+            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1, max, e);
         else
             reflect_color = ZERO_VECTOR();
         vector diffuse_color;
         if (!isZero(closest.m->c_diffuse))
-            diffuse_color = findDiffuse(c, closest.p, closest.n, num + 1, closest.e);
+            diffuse_color = findDiffuse(c, closest.p, closest.n, num + 1, max,  closest.e);
         else
             diffuse_color = ZERO_VECTOR();
         return (closest.m->c_reflect * reflect_color +
@@ -194,7 +194,7 @@ color _renderPixel(render_context* c, int x, int y) {
     double rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
     ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
-    return convertFloatToColor(_traceRay(c, r, 0, NULL));
+    return convertFloatToColor(_traceRay(c, r, 0, c->max_iterations, NULL));
 }
 
 
@@ -257,10 +257,11 @@ void addEntity(render_context* rc, entity* e) {
     llPushBack(rc->entities, e);
 }
 
-void renderScene(render_context* rc, int x, int y, int num_threads) {
+void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations) {
     rc->x = x;
     rc->y = y;
     rc->num_threads = num_threads;
+    rc->max_iterations = max_iterations;
     color* output;
     output = aligned_malloc(64, sizeof(color) * (x * y));
     memset(output, 0, sizeof(color) * (x * y));
@@ -283,7 +284,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads) {
             complete += contexts[i].count_complete;
         }
         double percentage = complete/(double)total;
-        fprintf(stderr, "%f%% Complete\n", percentage * 100);
+        fprintf(stderr, "%lf%% Complete\n", percentage * 100);
     //    generateBmp("/tmp/render.bmp", (char*) output, x, y);
         sleep(1);
     }

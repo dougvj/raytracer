@@ -7,10 +7,11 @@ float frand() {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 4) {
-        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads>\n");
+    if (argc < 5) {
+        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_iterations>\n");
         return 255;
     }
+    int max_iterations = atoi(argv[4]);
     int num_threads = atoi(argv[3]);
     int w = atoi(argv[1]);
     int h = atoi(argv[2]);
@@ -93,6 +94,6 @@ int main(int argc, char** argv) {
                 })
         );
     }
-    renderScene(rc, w, h, num_threads);
+    renderScene(rc, w, h, num_threads, max_iterations);
     return 0;
 }
