@@ -24,32 +24,33 @@ intersection Hit(vector pos, vector norm, material* m, entity* e) {
     return (intersection){1, norm, pos, m, e};
 }
 
-intersection intersectSphere(sphere* s, ray* r) {
-    if (dot(r->d, s->p - r->p) <= 0)
+intersection intersectSphere(sphere* s, ray r) {
+    vector rs = s->p - r.p;
+    if (dot(r.d, s->p - r.p) <= 0)
        return noHit();
-    double a = dot(r->d, r->d);
-    vector rs = r->p - s->p;
-    double b = dot(SCALAR(2.0) * r->d, rs);
+    double a = dot(r.d, r.d);
+    rs = -rs;
+    double b = dot(SCALAR(2.0) * r.d, rs);
     double c = dot(rs, rs) - s->r*s->r;
     double disc = (b*b) - (4 * a * c);
     if (disc >= 0) {
         double t = ((-b) - sqrt(disc))/(2*a);
-        vector p = VEC3F(COMPONENT(r->p).x + t * COMPONENT(r->d).x, COMPONENT(r->p).y + t * COMPONENT(r->d).y, COMPONENT(r->p).z + t * COMPONENT(r->d).z);
+        vector p = VEC3F(COMPONENT(r.p).x + t * COMPONENT(r.d).x, COMPONENT(r.p).y + t * COMPONENT(r.d).y, COMPONENT(r.p).z + t * COMPONENT(r.d).z);
         vector n = p - s->p;
         return Hit(p, n, &s->m, s->e);
     }
     return noHit();
 }
 
-intersection intersectPlane(plane* p, ray* r) {
-    double n = dot(p->n, (p->p -  r->p));
-    double d = dot(p->n, r->d);
+intersection intersectPlane(plane* p, ray r) {
+    double n = dot(p->n, (p->p -  r.p));
+    double d = dot(p->n, r.d);
     if (d == 0)
         return noHit();
     double r1 = n/d;
     if (r1 <= 1)
         return noHit();
-    vector pos =  (r->p + SCALAR(r1) * r->d);
+    vector pos =  (r.p + SCALAR(r1) * r.d);
     material* m;
     if (abs((int)(floor(COMPONENT(pos).x))) % 2 ==  abs((int)(floor(COMPONENT(pos).z))) % 2 )
         m = &p->m1;
@@ -58,12 +59,12 @@ intersection intersectPlane(plane* p, ray* r) {
     return Hit(pos, p->n, m, p->e);
 }
 
-intersection intersectTriangle(triangle* t, ray* r) {
+intersection intersectTriangle(triangle* t, ray r) {
     return noHit();
 
 }
 
-intersection intersectEntity(entity* e, ray* r) {
+intersection intersectEntity(entity* e, ray r) {
     switch(e->type) {
         case TRIANGLE:
             return intersectTriangle(e->t, r);
@@ -133,7 +134,7 @@ vector _traceRay(render_context* c, ray r, int num, entity* hit) {
     intersection closest = noHit();
     double distance;
     while(e) {
-        intersection i = intersectEntity(e, &r);
+        intersection i = intersectEntity(e, r);
         if (i.hit) {
             double new_distance = length((i.p - r.p));
             if(closest.hit) {

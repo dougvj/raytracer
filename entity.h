@@ -12,26 +12,26 @@ typedef struct {
 } material;
 
 
-typedef struct {
-    vector __attribute((aligned(64))) p;
+typedef struct __attribute__((aligned(64))) {
+    vector p;
     float r;
     material m;
     entity* e;
 } sphere;
 
-typedef struct {
-    vector __attribute((aligned(64))) p;
-    vector __attribute((aligned(64))) n;
+typedef struct __attribute__((aligned(64))) {
+    vector p;
+    vector n;
     material m1;
     material m2;
     entity* e;
 } plane;
 
-typedef struct {
-    vector __attribute((aligned(64))) v1;
-    vector __attribute((aligned(64))) v2;
-    vector __attribute((aligned(64))) v3;
-    vector __attribute((aligned(64))) n;
+typedef struct __attribute__((aligned(64))) {
+    vector v1;
+    vector v2;
+    vector v3;
+    vector n;
     material m;
     entity* e;
 } triangle;

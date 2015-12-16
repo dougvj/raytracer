@@ -5,9 +5,9 @@
 #include "libdatastruct/linkedlist.h"
 
 
-typedef struct {
-    vector __attribute__((aligned(64))) p;
-    vector __attribute__((aligned(64))) d;
+typedef struct __attribute__((aligned(64))) {
+    vector p;
+    vector d;
 } ray;
 
 typedef union {

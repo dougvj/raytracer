@@ -2,6 +2,7 @@
 #define VMATH_H
 #include "math.h"
 #include <stdio.h>
+#include <stdlib.h>
 typedef double vector __attribute__((vector_size(32)));
 #include <stdlib.h>
 
@@ -23,7 +24,15 @@ inline void* aligned_malloc(int aligned, size_t size) {
 }
 
 
-
+inline void* aligned_malloc(int align, size_t size) {
+    void* p;
+    int e = posix_memalign((void**)&p, align, size);
+    if (e != 0) {
+        fprintf(stderr, "Memory Allocation Error\n");
+        exit(1);
+    }
+    return p;
+}
 
 #define VEC3F(x, y, z) ((vector){x, y, z, 0.0})
 #define COMPONENT(x) ((vector_accessor){.v = x})
