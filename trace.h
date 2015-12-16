@@ -17,15 +17,8 @@ typedef union {
     };
 } color;
 
-typedef struct {
-     int num_threads;
-     int x;
-     int y;
-     int max_iterations;
-     float_t fov;
-     LL* entities;
-     color* output;
-} render_context;
+typedef struct render_context_t render_context;
+
 
 render_context* createRenderContext();
 void addEntity(render_context* rc, entity* e);

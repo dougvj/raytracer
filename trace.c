@@ -15,6 +15,27 @@ typedef struct {
     entity* e;
 } intersection;
 
+typedef struct {
+    render_context* c;
+    int thread_num;
+    int count_complete;
+    int num_traces;
+} thread_context;
+
+struct render_context_t {
+     int num_threads;
+     int x;
+     int y;
+     int max_iterations;
+     float_t fov;
+     LL* entities;
+     color* output;
+     pthread_mutex_t mutex;
+     long current_block;
+     long block_size;
+     long total_blocks;
+} render_context_t;
+
 intersection noHit() {
     return (intersection){0, ZERO_VECTOR(), ZERO_VECTOR(), NULL, NULL};
 }
@@ -198,25 +219,37 @@ color _renderPixel(render_context* c, int x, int y) {
 }
 
 
-typedef struct {
-    render_context* c;
-    int thread_num;
-    int count_complete;
-    int num_traces;
-} thread_context;
+
+
+long getNextBlock(render_context* rc) {
+    pthread_mutex_lock(&rc->mutex);
+    long b =  rc->current_block;
+    rc->current_block++;
+    pthread_mutex_unlock(&rc->mutex);
+    if (b >= rc->total_blocks)
+        return -1;
+    return b;
+}
+
+void declareBlockFinished(render_context* rc, long block) {
+    //For now do nothing;
+}
 
 void _startRenderThread(thread_context* c) {
-    long total = c->c->x * c->c->y;
-    //Determine block size
-    long block_size_x = total / c->c->num_threads;
-    long start = block_size_x * c->thread_num;
-    long end = block_size_x * (c->thread_num + 1);
-    for (long pixel = start; pixel < end; pixel++) {
-         int x = pixel % c->c->x;
-         int y = pixel / c->c->x;
-         //fprintf(stderr, "%u, %u\n", x, y);
-         c->c->output[pixel] = _renderPixel(c->c, x, y);
-         c->count_complete++;
+    long block = getNextBlock(c->c);
+    while (block != -1) {
+        printf("%i: block %li\n", c->thread_num, block);
+        long start = c->c->block_size * block;
+        long end = c->c->block_size * (block + 1);
+        for (long pixel = start; pixel < end; pixel++) {
+             int x = pixel % c->c->x;
+             int y = pixel / c->c->x;
+             c->c->output[pixel] = _renderPixel(c->c, x, y);
+             c->count_complete++;
+
+        }
+        declareBlockFinished(c->c, block);
+        block = getNextBlock(c->c);
     }
 }
 
@@ -224,6 +257,8 @@ render_context* createRenderContext() {
     render_context* rc = aligned_malloc(64, sizeof(render_context));
     rc->entities = llCreate();
     rc->fov = FOV_RADS;
+    rc->current_block = 0;
+    pthread_mutex_init(&rc->mutex, NULL);
     return rc;
 }
 
@@ -257,11 +292,14 @@ void addEntity(render_context* rc, entity* e) {
     llPushBack(rc->entities, e);
 }
 
+
 void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations) {
     rc->x = x;
     rc->y = y;
     rc->num_threads = num_threads;
+    rc->block_size = x * y / (num_threads * 2);
     rc->max_iterations = max_iterations;
+    rc->total_blocks = (x * y) / rc->block_size;
     color* output;
     output = aligned_malloc(64, sizeof(color) * (x * y));
     memset(output, 0, sizeof(color) * (x * y));
