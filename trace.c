@@ -37,7 +37,7 @@ intersection intersectSphere(sphere* s, ray* r) {
 //        fprintf(stderr, "%f\n", disc);
         double t = ((-b) - sqrt(disc))/(2*a);
         float4 p = FLOAT4_3f(r->p.x + t * r->d.x, r->p.y + t * r->d.y, r->p.z + t * r->d.z);
-        float4 n = FLOAT4_v(s->p.v - p.v);
+        float4 n = FLOAT4_v(p.v - s->p.v);
         return Hit(p, n, &s->m, s->e);
     }
     return noHit();
@@ -83,32 +83,6 @@ intersection intersectEntity(entity* e, ray* r) {
 
 float4 _traceRay(render_context* c, ray r, int num, entity* hit);
 
-/*float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
-    if (num > MAX_ITR)
-        return FLOAT4_Zero();
-    aimY aim = computeAimY(n);
-    int num_lights = 0;
-    float4 cor_total = FLOAT4_Zero();
-    for (int i = 1; i < DIFFUSE_RES; i++) {
-        double deg_p = (i / (double)DIFFUSE_RES) * (M_PI);
-        int max_j = cos(deg_p) * (DIFFUSE_RES * 4);
-        double cos_p = cos(deg_p);
-        double sin_p = sin(deg_p);
-        for (int j = 0; j < max_j; j++) {
-            num_lights++;
-            double deg_t = (j / (double)max_j) * (M_PI * 4);
-            double x = sin(deg_t);
-            double z = cos(deg_t);
-            float4 v = FLOAT4_3f(x - (sin_p * x) , cos_p, z - (sin_p * z));
-            v = applyAimY(aim, v);
-            float4 cor = _traceRay(c, (ray){p, v}, num + 1);
-            cor = FLOAT4_v(cor.v * FLOAT4_f(dot(v, n)).v);
-            cor_total = FLOAT4_v(cor_total.v + cor.v);
-        }
-    }
-    return FLOAT4_v(cor_total.v / (FLOAT4_f(num_lights / 4).v ));
-}*/
-
 float4 normalize_color(float4 c) {
     double max = 0.0f;
     for(int i = 0; i < 4; i++) {
@@ -143,16 +117,20 @@ float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
                 light = FLOAT4_v(e->s->p.v - p.v);
                 r = (ray){p, light};
                 incidence = dot(normalize(light), normalize(n));
+                if (incidence < 0)
+                    incidence *= -1;
+//                    return FLOAT4_Zero();
+                //printf("%f\n", incidence);
                 cor = _traceRay(c, r, num + 2, e);
                 distance = length(light);
                 square = 1 / (distance * distance);
                 cor = FLOAT4_v(cor.v * FLOAT4_f(square).v);
-                cor = normalize_color(cor);
+//cor = normalize_color(cor);
                 cor_total = FLOAT4_v(cor.v * FLOAT4_f(incidence).v  + cor_total.v);
         }
         e = (entity*)llGetNext(itr);
     }
-    cor_total = normalize_color(cor_total);
+    //cor_total = normalize_color(cor_total);
     return cor_total;
 }
 
