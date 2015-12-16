@@ -5,7 +5,7 @@
 #include "bmp.h"
 #include <string.h>
 
-#define MAX_ITR 6
+#define MAX_ITR 1
 #define DIFFUSE_RES_PER_DEG_ARC 0.5f;
 #define FOV_RADS 1.5708
 typedef struct {
@@ -133,6 +133,7 @@ vector _traceRay(render_context* c, ray r, int num, entity* hit) {
     entity* e = (entity*)llGetNext(itr);
     intersection closest = noHit();
     double distance;
+    int count = 0;
     while(e) {
         intersection i = intersectEntity(e, r);
         if (i.hit) {
@@ -148,6 +149,8 @@ vector _traceRay(render_context* c, ray r, int num, entity* hit) {
                 distance = new_distance;
             }
         }
+        count++;
+//printf("num: %u, count: %u\n", num, count);
         e = (entity*)llGetNext(itr);
     }
     if (closest.hit) {
@@ -160,7 +163,7 @@ vector _traceRay(render_context* c, ray r, int num, entity* hit) {
             reflect_color = ZERO_VECTOR();
         vector diffuse_color;
         if (!isZero(closest.m->c_diffuse))
-            diffuse_color = findDiffuse(c, closest.p, closest.n, num, closest.e);
+            diffuse_color = findDiffuse(c, closest.p, closest.n, num + 1, closest.e);
         else
             diffuse_color = ZERO_VECTOR();
         return (closest.m->c_reflect * reflect_color +
