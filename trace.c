@@ -5,7 +5,7 @@
 #include "bmp.h"
 #include <string.h>
 
-#define MAX_ITR 4
+#define MAX_ITR 16
 #define DIFFUSE_RES_PER_DEG_ARC 0.5f;
 #define FOV_RADS 1.5708
 typedef struct {

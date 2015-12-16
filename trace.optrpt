@@ -1,0 +1,658 @@
+
+Begin optimization report for: intersectSphere(sphere *, ray *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(28,19)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 5.750 
+   remark #15478: estimated potential speedup: 0.520 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(28,9)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 6.500 
+   remark #15478: estimated potential speedup: 0.640 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(30,16)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 4 
+   remark #15451: unmasked unaligned unit stride stores: 2 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 13 
+   remark #15477: vector loop cost: 12.250 
+   remark #15478: estimated potential speedup: 0.730 
+   remark #15479: lightweight vector operations: 7 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at trace.c(32,20)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 6.500 
+   remark #15478: estimated potential speedup: 0.480 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(32,16)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 4 
+   remark #15451: unmasked unaligned unit stride stores: 2 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 13 
+   remark #15477: vector loop cost: 13.000 
+   remark #15478: estimated potential speedup: 0.700 
+   remark #15479: lightweight vector operations: 7 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at trace.c(40,20)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 5.750 
+   remark #15478: estimated potential speedup: 0.700 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+===========================================================================
+
+Begin optimization report for: intersectPlane(plane *, ray *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(47,26)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 5.750 
+   remark #15478: estimated potential speedup: 0.700 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(47,16)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 3 
+   remark #15451: unmasked unaligned unit stride stores: 2 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 10 
+   remark #15477: vector loop cost: 10.250 
+   remark #15478: estimated potential speedup: 0.540 
+   remark #15479: lightweight vector operations: 5 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(48,16)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 6.500 
+   remark #15478: estimated potential speedup: 0.640 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at trace.c(55,19)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 3 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 9 
+   remark #15477: vector loop cost: 8.500 
+   remark #15478: estimated potential speedup: 0.760 
+   remark #15479: lightweight vector operations: 4 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+===========================================================================
+
+Begin optimization report for: findDiffuse(render_context *, float4, float4, int, entity *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(95,5)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at trace.c(103,25)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.520 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(105,43)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(43,32) inlined into trace.c(105,43)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 4 
+      remark #15451: unmasked unaligned unit stride stores: 2 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 37 
+      remark #15477: vector loop cost: 19.750 
+      remark #15478: estimated potential speedup: 1.300 
+      remark #15479: lightweight vector operations: 7 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(43,32) inlined into trace.c(105,61)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 30 
+      remark #15477: vector loop cost: 13.250 
+      remark #15478: estimated potential speedup: 1.570 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(105,29)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(115,28)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(117,23)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.480 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(118,29)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 3 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 9 
+      remark #15477: vector loop cost: 8.500 
+      remark #15478: estimated potential speedup: 0.610 
+      remark #15479: lightweight vector operations: 4 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+LOOP END
+===========================================================================
+
+Begin optimization report for: _startRenderThread(thread_context *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(214,5)
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization. First dependence is shown below. Use level 5 report for details
+   remark #15346: vector dependence: assumed ANTI dependence between c line 215 and c line 218
+LOOP END
+===========================================================================
+
+Begin optimization report for: renderScene(render_context *, int, int, int)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(270,5)
+   remark #15527: loop was not vectorized: function call to pthread_create(pthread_t *__restrict__, const pthread_attr_t *__restrict__, void *(*)(void *), void *__restrict__) cannot be vectorized   [ trace.c(276,9) ]
+LOOP END
+
+LOOP BEGIN at trace.c(280,5)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at trace.c(282,9)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15460: masked strided loads: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 3 
+      remark #15477: vector loop cost: 1.560 
+      remark #15478: estimated potential speedup: 1.690 
+      remark #15479: lightweight vector operations: 6 
+      remark #15487: type converts: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(282,9)
+   LOOP END
+
+   LOOP BEGIN at trace.c(282,9)
+   <Remainder>
+   LOOP END
+LOOP END
+
+LOOP BEGIN at trace.c(290,5)
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization. First dependence is shown below. Use level 5 report for details
+LOOP END
+===========================================================================
+
+Begin optimization report for: _traceRay(render_context *, ray, int, entity *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at trace.c(137,5)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at trace.c(28,19) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.520 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 4 
+      remark #15451: unmasked unaligned unit stride stores: 2 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 13 
+      remark #15477: vector loop cost: 12.250 
+      remark #15478: estimated potential speedup: 0.620 
+      remark #15479: lightweight vector operations: 7 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(32,20) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.480 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 4 
+      remark #15451: unmasked unaligned unit stride stores: 2 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 13 
+      remark #15477: vector loop cost: 13.000 
+      remark #15478: estimated potential speedup: 0.700 
+      remark #15479: lightweight vector operations: 7 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(40,20) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.520 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(47,26) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.550 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 3 
+      remark #15451: unmasked unaligned unit stride stores: 2 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 10 
+      remark #15477: vector loop cost: 10.250 
+      remark #15478: estimated potential speedup: 0.570 
+      remark #15479: lightweight vector operations: 5 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(55,19) inlined into trace.c(138,46)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 3 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 9 
+      remark #15477: vector loop cost: 8.500 
+      remark #15478: estimated potential speedup: 0.610 
+      remark #15479: lightweight vector operations: 4 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(140,42)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.520 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(140,35)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+LOOP END
+
+LOOP BEGIN at vmath.h(33,28) inlined into trace.c(159,72)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 2 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 6 
+   remark #15477: vector loop cost: 6.500 
+   remark #15478: estimated potential speedup: 0.640 
+   remark #15479: lightweight vector operations: 2 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at vmath.h(48,56) inlined into trace.c(159,72)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 4 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 12 
+   remark #15477: vector loop cost: 11.250 
+   remark #15478: estimated potential speedup: 0.800 
+   remark #15479: lightweight vector operations: 6 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+
+LOOP BEGIN at trace.c(95,5) inlined into trace.c(164,71)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at trace.c(103,25) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 5.750 
+      remark #15478: estimated potential speedup: 0.520 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(43,32) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 4 
+      remark #15451: unmasked unaligned unit stride stores: 2 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 37 
+      remark #15477: vector loop cost: 19.750 
+      remark #15478: estimated potential speedup: 1.300 
+      remark #15479: lightweight vector operations: 7 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(43,32) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 30 
+      remark #15477: vector loop cost: 13.250 
+      remark #15478: estimated potential speedup: 1.570 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at vmath.h(33,28) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.640 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(117,23) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 2 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 6 
+      remark #15477: vector loop cost: 6.500 
+      remark #15478: estimated potential speedup: 0.480 
+      remark #15479: lightweight vector operations: 2 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+
+   LOOP BEGIN at trace.c(118,29) inlined into trace.c(164,71)
+      remark #15300: LOOP WAS VECTORIZED
+      remark #15450: unmasked unaligned unit stride loads: 3 
+      remark #15451: unmasked unaligned unit stride stores: 1 
+      remark #15475: --- begin vector loop cost summary ---
+      remark #15476: scalar loop cost: 9 
+      remark #15477: vector loop cost: 8.500 
+      remark #15478: estimated potential speedup: 0.610 
+      remark #15479: lightweight vector operations: 4 
+      remark #15480: medium-overhead vector operations: 2 
+      remark #15481: heavy-overhead vector operations: 1 
+      remark #15488: --- end vector loop cost summary ---
+   LOOP END
+LOOP END
+
+LOOP BEGIN at trace.c(167,16)
+   remark #15300: LOOP WAS VECTORIZED
+   remark #15450: unmasked unaligned unit stride loads: 6 
+   remark #15451: unmasked unaligned unit stride stores: 1 
+   remark #15475: --- begin vector loop cost summary ---
+   remark #15476: scalar loop cost: 17 
+   remark #15477: vector loop cost: 15.250 
+   remark #15478: estimated potential speedup: 0.850 
+   remark #15479: lightweight vector operations: 10 
+   remark #15480: medium-overhead vector operations: 2 
+   remark #15481: heavy-overhead vector operations: 1 
+   remark #15488: --- end vector loop cost summary ---
+LOOP END
+===========================================================================
