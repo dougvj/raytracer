@@ -82,14 +82,14 @@ int main(int argc, char** argv) {
                 }
             )
     );
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 1000; i++) {
         addEntity(rc,
-                 createSphere(VEC3F((i % 10) * 10 -50, frand() * 10 + 9.4,  (i / 10) * 10 + 40 ), frand() * 2.0 + 1.0,
+                 createSphere(VEC3F((i % 10) * 20 -100, frand() * 20 + 9.4,  (i / 10) * 10 - 10 ), frand() * 2.0 + 1.0,
                 (material) {
                     VEC3F(0.8, 0.8, 0.8),
                     VEC3F(0.4, 0.4, 0.4),
                     VEC3F(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    3.0
+                    frand() * 50
                 })
         );
     }
