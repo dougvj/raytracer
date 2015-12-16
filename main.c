@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(0.0, 4.0, 23.0), 2.3,
+            createSphere(FLOAT4_3f(0.0, 4.0, 53.0), 2.3,
                 (material) {
                     FLOAT4_3f(1.0, 1.0, 1.0),
                     FLOAT4_3f(0.2, 0.2, 0.2),
@@ -36,32 +36,32 @@ int main(int argc, char** argv) {
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(0.0, 0.0, 25.2), 1.5,
+            createSphere(FLOAT4_3f(0.0, 0.0, 55.2), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     FLOAT4_3f(0.0, 0.0, 1.0),
-                    30.0
+                    60.0
                 }
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(-3.0, 0.0, 20.0), 1.5,
+            createSphere(FLOAT4_3f(-3.0, 0.0, 50.0), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     FLOAT4_3f(0.0, 1.0, 0.0),
-                    30.0,
+                    60.0,
                 }
             )
     );
     addEntity(rc,
-            createSphere(FLOAT4_3f(3.0, 0.0, 20.0), 1.5,
+            createSphere(FLOAT4_3f(3.0, 0.0, 50.0), 1.5,
                 (material) {
                     FLOAT4_3f(0.6, 0.6, 0.6),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     FLOAT4_3f(1.0, 0.0, 0.0),
-                    30.0,
+                    60.0,
                 }
             )
     );
@@ -69,27 +69,27 @@ int main(int argc, char** argv) {
             createPlane(FLOAT4_3f(0.0, -6.0, 0.0),
                         FLOAT4_3f(0.0, 1.0, 0.0),
                 (material) {
-                    FLOAT4_3f(0.6, 0.6, 0.6),
-                    FLOAT4_3f(1.0, 1.0, 1.0),
+                    FLOAT4_3f(0.5, 0.5, 0.5),
+                    FLOAT4_3f(0.75, 1.0, 1.0),
                     FLOAT4_3f(0.0, 0.0, 0.0),
                     0.0,
                 },
                 (material) {
-                    FLOAT4_3f(0.8, 0.8, 0.8),
-                    FLOAT4_3f(0.3, 0.3, 0.3),
-                    FLOAT4_3f(0.2, 0.2, 0.2),
+                    FLOAT4_3f(0.75, 0.75, 0.75),
+                    FLOAT4_3f(0.24, 0.35, 0.35),
+                    FLOAT4_3f(0.0, 0.0, 0.0),
                     0.0,
                 }
             )
     );
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 100; i++) {
         addEntity(rc,
-                 createSphere(FLOAT4_3f((i % 5) * 5 - 12.5, 6.0,  (i / 5) * 5 ), frand() + 1.0,
+                 createSphere(FLOAT4_3f((i % 10) * 5 -25, 8.0,  (i / 10) * 5 + 40 ), frand() * 2.0 + 1.0,
                 (material) {
                     FLOAT4_3f(0.8, 0.8, 0.8),
-                    FLOAT4_3f(1.0, 1.0, 1.0),
+                    FLOAT4_3f(0.4, 0.4, 0.4),
                     FLOAT4_3f(frand() * 0.3, frand() * 0.3, frand() * 0.3),
-                    10.0
+                    25.0
                 })
         );
     }

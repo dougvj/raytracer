@@ -54,7 +54,7 @@ intersection intersectPlane(plane* p, ray* r) {
         return noHit();
     float4 pos =  FLOAT4_v(r->p.v + FLOAT4_f(r1).v * r->d.v);
     material* m;
-    if ((int)(floor(pos.x)) % 2 == 0 &&  (int)(floor(pos.z)) % 2 == 0)
+    if (abs((int)(floor(pos.x))) % 2 ==  abs((int)(floor(pos.z))) % 2 )
         m = &p->m1;
     else
         m = &p->m2;
@@ -83,24 +83,8 @@ intersection intersectEntity(entity* e, ray* r) {
 
 float4 _traceRay(render_context* c, ray r, int num, entity* hit);
 
-float4 normalize_color(float4 c) {
-    double max = 0.0f;
-    for(int i = 0; i < 4; i++) {
-        if (c.e[i] > max)
-            max = c.e[i];
-    }
-    if (max > 100.0f) {
-        print_float4(c);
-        for(int i = 0; i < 4; i++) {
-            c.e[i] /= max;
-        }
-        print_float4(c);
-        printf("\n");
-    }
-    return c;
-}
 
-float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
+float4 findDiffuse(render_context* c, float4 p, float4 n, int num, entity* ignore) {
     if (num > MAX_ITR)
         return FLOAT4_Zero();
     LL_itr* itr = llInitIterator(c->entities);
@@ -109,6 +93,8 @@ float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
     float4 cor = FLOAT4_Zero();
     double distance, square;
     while (e) {
+        if (e == ignore)
+            goto next;
         float4 light;
         ray r;
         double incidence;
@@ -122,15 +108,18 @@ float4 findDiffuse(render_context* c, float4 p, float4 n, int num) {
 //                    return FLOAT4_Zero();
                 //printf("%f\n", incidence);
                 cor = _traceRay(c, r, num + 2, e);
+                //Apply intensity
+                cor.x *= cor.w;
+                cor.y *= cor.w;
+                cor.z *= cor.w;
                 distance = length(light);
                 square = 1 / (distance * distance);
                 cor = FLOAT4_v(cor.v * FLOAT4_f(square).v);
-//cor = normalize_color(cor);
                 cor_total = FLOAT4_v(cor.v * FLOAT4_f(incidence).v  + cor_total.v);
         }
+next:
         e = (entity*)llGetNext(itr);
     }
-    //cor_total = normalize_color(cor_total);
     return cor_total;
 }
 
@@ -172,12 +161,12 @@ float4 _traceRay(render_context* c, ray r, int num, entity* hit) {
             reflect_color = FLOAT4_Zero();
         float4 diffuse_color;
         if (!isZero(closest.m->c_diffuse))
-            diffuse_color = findDiffuse(c, closest.p, closest.n, num);
+            diffuse_color = findDiffuse(c, closest.p, closest.n, num, closest.e);
         else
             diffuse_color = FLOAT4_Zero();
         return FLOAT4_v(closest.m->c_reflect.v * reflect_color.v +
                closest.m->c_diffuse.v * diffuse_color.v +
-               closest.m->c_emissions.v * FLOAT4_f(closest.m->intensity).v);
+               closest.m->c_emissions.v + FLOAT4_4f(0.0f, 0.0f, 0.0f, closest.m->intensity).v);
     }
     return getBackground(r);
 }
