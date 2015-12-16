@@ -280,8 +280,8 @@ void renderScene(render_context* rc, int x, int y, int num_threads) {
             complete += contexts[i].count_complete;
         }
         double percentage = complete/(double)total;
-        fprintf(stderr, "%4.2f%% Complete\n", percentage * 100);
-        generateBmp("/tmp/render.bmp", (char*) output, x, y);
+        fprintf(stderr, "%f%% Complete\n", percentage * 100);
+    //    generateBmp("/tmp/render.bmp", (char*) output, x, y);
         sleep(1);
     }
     for (int i = 0; i < num_threads; i++) {
