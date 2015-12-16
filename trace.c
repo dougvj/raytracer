@@ -27,13 +27,13 @@ intersection intersectSphere(sphere* s, ray r) {
     vector rs = s->p - r.p;
     if (dot(r.d, s->p - r.p) <= 0)
        return noHit();
-    double a = dot(r.d, r.d);
+    float_t a = dot(r.d, r.d);
     rs = -rs;
-    double b = dot(SCALAR(2.0) * r.d, rs);
-    double c = dot(rs, rs) - s->r*s->r;
-    double disc = (b*b) - (4 * a * c);
+    float_t b = dot(SCALAR(2.0) * r.d, rs);
+    float_t c = dot(rs, rs) - s->r*s->r;
+    float_t disc = (b*b) - (4 * a * c);
     if (disc >= 0) {
-        double t = ((-b) - sqrt(disc))/(2*a);
+        float_t t = ((-b) - sqrt(disc))/(2*a);
         vector p = VEC3F(COMPONENT(r.p).x + t * COMPONENT(r.d).x, COMPONENT(r.p).y + t * COMPONENT(r.d).y, COMPONENT(r.p).z + t * COMPONENT(r.d).z);
         vector n = p - s->p;
         return Hit(p, n, &s->m, s->e);
@@ -42,11 +42,11 @@ intersection intersectSphere(sphere* s, ray r) {
 }
 
 intersection intersectPlane(plane* p, ray r) {
-    double n = dot(p->n, (p->p -  r.p));
-    double d = dot(p->n, r.d);
+    float_t n = dot(p->n, (p->p -  r.p));
+    float_t d = dot(p->n, r.d);
     if (d == 0)
         return noHit();
-    double r1 = n/d;
+    float_t r1 = n/d;
     if (r1 <= 1)
         return noHit();
     vector pos =  (r.p + SCALAR(r1) * r.d);
@@ -88,13 +88,13 @@ vector findDiffuse(render_context* c, vector p, vector n, int num, int max, enti
     entity* e = (entity*)llGetNext(itr);
     vector cor_total = ZERO_VECTOR();
     vector cor = ZERO_VECTOR();
-    double distance, square;
+    float_t distance, square;
     while (e) {
         if (e == ignore)
             goto next;
         vector light;
         ray r;
-        double incidence;
+        float_t incidence;
         switch(e->type) {
             case SPHERE:
                 light = (e->s->p - p);
@@ -132,12 +132,12 @@ vector _traceRay(render_context* c, ray r, int num, int max, entity* hit) {
     LL_itr* itr = llInitIterator(c->entities);
     entity* e = (entity*)llGetNext(itr);
     intersection closest = noHit();
-    double distance;
+    float_t distance;
     int count = 0;
     while(e) {
         intersection i = intersectEntity(e, r);
         if (i.hit) {
-            double new_distance = length((i.p - r.p));
+            float_t new_distance = length((i.p - r.p));
             if(closest.hit) {
                 if (new_distance < distance) {
                     closest = i;
@@ -189,9 +189,9 @@ color convertFloatToColor(vector cor) {
 }
 
 color _renderPixel(render_context* c, int x, int y) {
-    double rx = (x / (double)c->x) * 2 - 1.0f;
-    double ry = (((y / (double)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
-    double rz = 1.0f / tan(c->fov / 2.0f);
+    float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
+    float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
+    float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
     ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
     return convertFloatToColor(_traceRay(c, r, 0, c->max_iterations, NULL));
@@ -228,7 +228,7 @@ render_context* createRenderContext() {
 }
 
 
-entity* createSphere(vector pos, double r, material m) {
+entity* createSphere(vector pos, float_t r, material m) {
     sphere* s = aligned_malloc(64, sizeof(sphere));
     s->p = pos;
     s->r = r;

@@ -3,17 +3,26 @@
 #include "math.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef SINGLE_PRECISION
+typedef float vector __attribute__((vector_size(16)));
+#define float_t float
+#else
 typedef double vector __attribute__((vector_size(32)));
+#define float_t double
+#endif
+
+
 #include <stdlib.h>
 
 typedef union {
     vector v;
-    double e[4];
+    float_t e[4];
     struct {
-        double x;
-        double y;
-        double z;
-        double w;
+        float_t x;
+        float_t y;
+        float_t z;
+        float_t w;
     };
 } vector_accessor;
 
@@ -47,22 +56,22 @@ inline vector cross(vector av, vector bv) {
     return VEC3F(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
-inline double dot(vector a, vector b) {
+inline float_t dot(vector a, vector b) {
     vector_accessor c = COMPONENT(a * b);
     return (c.e[0] + c.e[1] + c.e[2] + c.e[3]);
 }
 
-inline double length(vector a) {
+inline float_t length(vector a) {
     return sqrt(dot(a, a));
 }
 
 inline vector normalize(vector a) {
-    double l = length(a);
+    float_t l = length(a);
     return a / SCALAR(l);
 }
 
 inline vector reflect(vector v, vector n) {
-    double d = dot(v, n);
+    float_t d = dot(v, n);
     return (v - (SCALAR(d) * n * SCALAR(2.0)));
 }
 
@@ -72,60 +81,60 @@ inline int isZero(vector v) {
 }
 
 typedef struct {
-    double ax, az;
+    float_t ax, az;
 } aimY;
 
-inline vector rotate(vector point, vector axis, double theta) {
+inline vector rotate(vector point, vector axis, float_t theta) {
     vector_accessor p = COMPONENT(point);
     vector_accessor a = COMPONENT(axis);
-    double x = p.x;
-    double y = p.y;
-    double z = p.z;
-    double u = a.x;
-    double v = a.y;
-    double w = a.z;
+    float_t x = p.x;
+    float_t y = p.y;
+    float_t z = p.z;
+    float_t u = a.x;
+    float_t v = a.y;
+    float_t w = a.z;
     return     VEC3F((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
 
 }
 
-inline vector rotateX(vector point, double theta) {
+inline vector rotateX(vector point, float_t theta) {
     vector_accessor p = COMPONENT(point);
-    double x = p.x;
-    double y = p.y;
-    double z = p.z;
-    static const double u = 1;
-    static const double v = 0;
-    static const double w = 0;
+    float_t x = p.x;
+    float_t y = p.y;
+    float_t z = p.z;
+    static const float_t u = 1;
+    static const float_t v = 0;
+    static const float_t w = 0;
     return     VEC3F((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
 
 }
 
-inline vector rotateY(vector point, double theta) {
+inline vector rotateY(vector point, float_t theta) {
     vector_accessor p = COMPONENT(point);
-    double x = p.x;
-    double y = p.y;
-    double z = p.z;
-    static const double u = 0;
-    static const double v = 1;
-    static const double w = 0;
+    float_t x = p.x;
+    float_t y = p.y;
+    float_t z = p.z;
+    static const float_t u = 0;
+    static const float_t v = 1;
+    static const float_t w = 0;
     return     VEC3F((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
 
 }
 
-inline vector rotateZ(vector point, double theta) {
+inline vector rotateZ(vector point, float_t theta) {
     vector_accessor p = COMPONENT(point);
-    double x = p.x;
-    double y = p.y;
-    double z = p.z;
-    static const double u = 0;
-    static const double v = 0;
-    static const double w = 1;
+    float_t x = p.x;
+    float_t y = p.y;
+    float_t z = p.z;
+    static const float_t u = 0;
+    static const float_t v = 0;
+    static const float_t w = 1;
     return     VEC3F((-u * (-u*x - v*y - w*z)) * (1 - cos(theta)) + x*cos(theta) + (-w*y + v*z)* sin(theta),
                      (-v * (-u*x - v*y - w*z)) * (1 - cos(theta)) + y*cos(theta) + (w*x - u*z) * sin(theta),
                      (-w * (-u*x - v*y - w*z)) * (1 - cos(theta)) + z*cos(theta) + (-v*x + u*y) * sin(theta));
@@ -141,9 +150,9 @@ inline vector applyAimY(aimY a, vector p) {
 
 inline aimY computeAimY(vector normal) {
     vector_accessor n = COMPONENT(normal);
-    double nlength = length(normal);
-    double xylength = length(VEC3F(n.x, n.y, 0.0));
-    double ax, az;
+    float_t nlength = length(normal);
+    float_t xylength = length(VEC3F(n.x, n.y, 0.0));
+    float_t ax, az;
     if (xylength == 0)
         az = n.x > 0 ? M_PI/2 : -M_PI/2;
     else
