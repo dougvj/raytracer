@@ -24,7 +24,7 @@ typedef struct {
 typedef struct {
     ray r;
     vector c;
-    material* m;
+    material m;
 } ray_color_pair;
 
 struct render_context_t {
@@ -144,7 +144,7 @@ void compareClosest(ray r, float_t* distance, intersection* closest, intersectio
 
 void _traceRay(render_context* c, long pixel) {
     ray_color_pair* p = &(c->ray_color_pairs[pixel]);
-    if (!p->m)
+    if (isZero(p->r.d))
         return;
     intersection closest = noHit();
     intersection test;
@@ -172,12 +172,14 @@ void _traceRay(render_context* c, long pixel) {
             for (i = 0; i < c->num_spheres; i++, count++)
                 diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
         vector emission_color = closest.m->c_emissions;
-        p->c = diffuse_color + emission_color + p->c;
-        p->m = closest.m;
+        p->c = (diffuse_color + emission_color) * p->m.c_reflect + p->c;
+        p->m.c_reflect *= closest.m->c_reflect;
+        p->m.c_diffuse = closest.m->c_diffuse;
+        p->m.c_emissions = closest.m->c_emissions;
         p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
     }
     else {
-        p->m = 0;
+        p->r = (ray){ZERO_VECTOR(), ZERO_VECTOR()};
     }
 }
 
@@ -196,8 +198,8 @@ color convertFloatToColor(vector cor) {
     return co;
 }
 
-material null_material = {
-     SCALAR(1.0),
+static const material null_material = {
+    SCALAR(1.0),
      ZERO_VECTOR(),
      ZERO_VECTOR(),
 };
@@ -208,7 +210,7 @@ void _generateOriginRay(render_context* c, int x, int y) {
     float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
     ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
-    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, ZERO_VECTOR(), &null_material};
+    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, ZERO_VECTOR(), null_material};
 }
 
 
@@ -218,12 +220,14 @@ long getNextBlock(render_context* rc) {
     pthread_mutex_lock(&rc->mutex);
     long b =  rc->current_block;
     rc->current_block++;
-    if (b >= rc->total_blocks) {
+    if (b >= rc->total_blocks ) {
         rc->cur_itr++;
-        b = 0;
-        rc->current_block = 0;
         if (rc->cur_itr >= rc->max_iterations)
             b = -1;
+        else {
+            b = 0;
+            rc->current_block = 0;
+        }
     }
     pthread_mutex_unlock(&rc->mutex);
     return b;
@@ -280,7 +284,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->num_threads = num_threads;
     rc->block_size = (x * y) / (num_threads * 10);
     rc->max_iterations = max_iterations;
-    rc->total_blocks = (x * y) / rc->block_size;
+    rc->total_blocks = num_threads * 10;
     rc->cur_itr = 0;
     //Generate arrays
     rc->planes = (plane**)llCreateArray(rc->ll_planes);

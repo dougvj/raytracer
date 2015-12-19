@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
                 }
             )
     );
-    for (int i = 0; i < 3000; i++) {
+   for (int i = 0; i < 3000; i++) {
         addSphere(rc,
                  createSphere(VEC3F(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200), frand() * 3 + 1,
                 (material) {
