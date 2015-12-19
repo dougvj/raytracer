@@ -1,7 +1,7 @@
 #ifndef TRACE_H
 #define TRACE_H
 #include "vmath.h"
-#include "entity.h"
+#include "geometric_primitives.h"
 #include "libdatastruct/linkedlist.h"
 
 
@@ -21,9 +21,9 @@ typedef struct render_context_t render_context;
 
 
 render_context* createRenderContext();
-void addEntity(render_context* rc, entity* e);
-entity* createSphere(vector pos, float_t r, material m);
-entity* createPlane(vector pos, vector norm, material m1, material m2);
+void addSphere(render_context* rc, sphere* s);
+void addPlane(render_context* rc, plane* p);
+void addTriangle(render_context* rc, triangle* t);
 void renderScene(render_context* c, int x, int y, int num_threads, int max_iterations);
 
 #endif

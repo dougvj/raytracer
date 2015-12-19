@@ -1,10 +1,8 @@
 
 WARNINGS= -Wall -Werror -Wfatal-errors
 CWARNINGS=
-CXXWARNINGS=
 INCLUDE=
 CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) 
-CXXFLAGS = -MMD $(WARNINGS) $(CXXWARNINGS) $(INCLUDE)
 
 LDFLAGS= -lpthread -lm -L./libdatastruct -ldatastruct
 
@@ -20,10 +18,8 @@ EXECUTABLE=raytrace
 #compilers
 
 CC=gcc 
-CXX=g++
 ifdef PHI
 CC=icc 
-CXX=icc
 endif
 
 
@@ -31,11 +27,9 @@ endif
 SRC=$(wildcard *.c)
 OBJECTS = $(SRC:%.c=%.o)
 
-CPPSRC=$(wildcard *.cpp)
-CPPOBJECTS = $(CPPSRC:%.cpp=%.o)
 
-all: $(OBJECTS) $(CPPOBJECTS)
-	$(CXX) $(OBJECTS) $(CPPOBJECTS) $(LDFLAGS) -o $(EXECUTABLE)
+all: $(OBJECTS) 
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $(EXECUTABLE)
 
 cleanDebug: clean Debug
 
@@ -70,19 +64,15 @@ set_test:
 
 
 ifdef DEBUG
-CFLAGS+= -g
-CXXFLAGS+= -g
+CFLAGS+= -g -Wno-psabi -Wno-maybe-uninitialized
+else 
+CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialized
 endif
 ifdef PHI
-CFLAGS+= -O3 -mmic -mkl 
-else
-CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialized
-CXXFLAGS+= -O3
-endif
-
+CFLAGS = -O3 -mmic -mkl 
+endif 
 ifdef CLANG
 CC=clang -Wno-unknown-warning-option 
-CXX=clang
 endif
 
 Test: set_test $(OBJECTS) unit-test.o test.o

@@ -4,15 +4,14 @@
 #include <pthread.h>
 #include "bmp.h"
 #include <string.h>
+#include "libdatastruct/linkedlist.h"
 
-#define DIFFUSE_RES_PER_DEG_ARC 0.5f;
+
 #define FOV_RADS 1.5708
 typedef struct {
-    int hit;
-    vector n;
     vector p;
+    vector n;
     material* m;
-    entity* e;
 } intersection;
 
 typedef struct {
@@ -22,13 +21,35 @@ typedef struct {
     int num_traces;
 } thread_context;
 
+typedef struct {
+    ray r;
+    vector c;
+    material* m;
+} ray_color_pair;
+
 struct render_context_t {
      int num_threads;
      int x;
      int y;
      int max_iterations;
+     int cur_itr;
      float_t fov;
-     LL* entities;
+
+    //Primitives
+    LL* ll_planes;
+    plane** planes;
+    int num_planes;
+    LL* ll_spheres;
+    sphere** spheres;
+    int num_spheres;
+    LL* ll_triangles;
+    triangle** triangles;
+    int num_triangles;
+
+    //rays
+    ray_color_pair* ray_color_pairs;
+    long num_rays;
+
      color* output;
      pthread_mutex_t mutex;
      long current_block;
@@ -37,11 +58,15 @@ struct render_context_t {
 } render_context_t;
 
 intersection noHit() {
-    return (intersection){0, ZERO_VECTOR(), ZERO_VECTOR(), NULL, NULL};
+    return (intersection){ZERO_VECTOR(), ZERO_VECTOR(), NULL};
 }
 
-intersection Hit(vector pos, vector norm, material* m, entity* e) {
-    return (intersection){1, norm, pos, m, e};
+intersection Hit(vector pos, vector norm, material* m) {
+    return (intersection){norm, pos, m};
+}
+
+static inline int isHit(intersection i) {
+    return i.m != NULL;
 }
 
 intersection intersectSphere(sphere* s, ray r) {
@@ -57,7 +82,7 @@ intersection intersectSphere(sphere* s, ray r) {
         float_t t = ((-b) - sqrt(disc))/(2*a);
         vector p = VEC3F(COMPONENT(r.p).x + t * COMPONENT(r.d).x, COMPONENT(r.p).y + t * COMPONENT(r.d).y, COMPONENT(r.p).z + t * COMPONENT(r.d).z);
         vector n = p - s->p;
-        return Hit(p, n, &s->m, s->e);
+        return Hit(p, n, &s->m);
     }
     return noHit();
 }
@@ -76,7 +101,7 @@ intersection intersectPlane(plane* p, ray r) {
         m = &p->m1;
     else
         m = &p->m2;
-    return Hit(pos, p->n, m, p->e);
+    return Hit(pos, p->n, m);
 }
 
 intersection intersectTriangle(triangle* t, ray r) {
@@ -84,114 +109,70 @@ intersection intersectTriangle(triangle* t, ray r) {
 
 }
 
-intersection intersectEntity(entity* e, ray r) {
-    switch(e->type) {
-        case TRIANGLE:
-            return intersectTriangle(e->t, r);
-            break;
-        case SPHERE:
-            return intersectSphere(e->s, r);
-            break;
-        case PLANE:
-            return intersectPlane(e->p, r);
-            break;
-    }
-    return noHit();
-}
-
-vector _traceRay(render_context* c, ray r, int num, int max, entity* hit);
-
-
-vector findDiffuse(render_context* c, vector p, vector n, int num, int max, entity* ignore) {
-    if (num > max)
-        return ZERO_VECTOR();
-    LL_itr* itr = llInitIterator(c->entities);
-    entity* e = (entity*)llGetNext(itr);
-    vector cor_total = ZERO_VECTOR();
-    vector cor = ZERO_VECTOR();
-    float_t distance, square;
-    while (e) {
-        if (e == ignore)
-            goto next;
-        vector light;
-        ray r;
-        float_t incidence;
-        switch(e->type) {
-            case SPHERE:
-                light = (e->s->p - p);
-                distance = length(light);
-                square = 1 / (distance * distance);
-                if (square * e->s->m.intensity < 0.01)
-                    goto next;
-                r = (ray){p, light};
-                incidence = dot(normalize(light), normalize(n));
-                if (incidence < 0)
-                    incidence *= -1;
-                cor = _traceRay(c, r, 1, 1, e);
-                //Apply intensity
-                vector_accessor cor_a = COMPONENT(cor);
-                cor_a.x *= cor_a.w;
-                cor_a.y *= cor_a.w;
-                cor_a.z *= cor_a.w;
-                cor = cor_a.v;
-                cor = (cor * SCALAR(square));
-                cor_total = (cor * SCALAR(incidence)  + cor_total);
-        }
-next:
-        e = (entity*)llGetNext(itr);
-    }
-    return cor_total;
-}
-
 vector getBackground(ray r) {
     return VEC4F(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-vector _traceRay(render_context* c, ray r, int num, int max, entity* hit) {
-    if (num > max)
-        return getBackground(r);
-    LL_itr* itr = llInitIterator(c->entities);
-    entity* e = (entity*)llGetNext(itr);
+vector calculateDiffuse(vector diffuse_color, vector emission_color, vector light_pos, vector surface_pos, vector normal) {
+    if (isZero(diffuse_color) || COMPONENT(emission_color).w == 0)
+        return ZERO_VECTOR();
+    vector light = (surface_pos - light_pos);
+    float_t distance = length(light);
+    float_t square = 1 / (distance * distance);
+    if (square * COMPONENT(diffuse_color).w < 0.01)
+        return ZERO_VECTOR();
+    float_t incidence = dot(normalize(light), normalize(normal));
+    if (incidence < 0)
+        incidence *= -1;
+    vector_accessor cor_a = COMPONENT(emission_color);
+    cor_a.x *= cor_a.w;
+    cor_a.y *= cor_a.w;
+    cor_a.z *= cor_a.w;
+    vector cor = cor_a.v;
+    cor = (cor * SCALAR(square));
+    return cor;
+}
+
+void compareClosest(float_t* distance, intersection* closest, intersection* to_compare) {
+    float_t new_distance = length((to_compare->p - to_compare->p));
+    if (new_distance < *distance) {
+        *distance = new_distance;
+        *closest = *to_compare;
+    }
+}
+
+void _traceRay(render_context* c, long pixel) {
+    ray_color_pair* p = &(c->ray_color_pairs[pixel]);
+    if (!p->m)
+        return;
     intersection closest = noHit();
-    float_t distance;
+    intersection test;
+    float_t distance = FLOAT_T_MAX;
     int count = 0;
-    while(e) {
-        intersection i = intersectEntity(e, r);
-        if (i.hit) {
-            float_t new_distance = length((i.p - r.p));
-            if(closest.hit) {
-                if (new_distance < distance) {
-                    closest = i;
-                    distance = new_distance;
-                }
-            }
-            else {
-                closest = i;
-                distance = new_distance;
-            }
-        }
-        count++;
-//printf("num: %u, count: %u\n", num, count);
-        e = (entity*)llGetNext(itr);
+    int i;
+    for (i = 0; i < c->num_spheres; i++, count++) {
+        test = intersectSphere(c->spheres[i], p->r);
+        compareClosest(&distance, &closest, &test);
     }
-    if (closest.hit) {
-        if (hit && closest.e != hit)
-            return ZERO_VECTOR();
-        vector reflect_color;
-        if (!isZero(closest.m->c_reflect))
-            reflect_color = _traceRay(c, (ray){closest.p, reflect(r.d, closest.n)}, num + 1, max, e);
-        else
-            reflect_color = ZERO_VECTOR();
-        vector diffuse_color;
-        if (!isZero(closest.m->c_diffuse))
-            diffuse_color = findDiffuse(c, closest.p, closest.n, num + 1, max,  closest.e);
-        else
-            diffuse_color = ZERO_VECTOR();
-        return (closest.m->c_reflect * reflect_color +
-               closest.m->c_diffuse * diffuse_color +
-               closest.m->c_emissions + VEC4F(0.0f, 0.0f, 0.0f, closest.m->intensity));
+    for (i = 0; i < c->num_planes; i++, count++) {
+        test = intersectPlane(c->planes[i], p->r);
+        compareClosest(&distance, &closest, &test);
     }
-    return getBackground(r);
+    for (i = 0; i < c->num_triangles; i++, count++) {
+        test = intersectTriangle(c->triangles[i], p->r);
+        compareClosest(&distance, &closest, &test);
+    }
+    if (isHit(closest)) {
+        vector diffuse_color = calculateDiffuse(p->m->c_diffuse, closest.m->c_emissions, closest.p, p->r.p, closest.n);
+        vector emission_color = closest.m->c_emissions;
+        printf("Here I am\n");
+        p->c = diffuse_color + emission_color + p->c;
+        p->m = closest.m;
+        p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
+    }
+    else {
+        p->m = 0;
+    }
 }
 
 color convertFloatToColor(vector cor) {
@@ -209,13 +190,20 @@ color convertFloatToColor(vector cor) {
     return co;
 }
 
-color _renderPixel(render_context* c, int x, int y) {
+material null_material = {
+     SCALAR(1.0),
+     ZERO_VECTOR(),
+     ZERO_VECTOR(),
+};
+
+void _generateOriginRay(render_context* c, int x, int y) {
     float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
     float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
     ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
-    return convertFloatToColor(_traceRay(c, r, 0, c->max_iterations, NULL));
+    c->ray_color_pairs[x * y] = (ray_color_pair){r, ZERO_VECTOR(), &null_material};
+    //printf("%u gen: %lx\n", x * y, (unsigned long)p->m);
 }
 
 
@@ -225,28 +213,31 @@ long getNextBlock(render_context* rc) {
     pthread_mutex_lock(&rc->mutex);
     long b =  rc->current_block;
     rc->current_block++;
+    if (b >= rc->total_blocks) {
+        rc->cur_itr++;
+        b = 0;
+        rc->current_block = 0;
+        if (rc->cur_itr > rc->max_iterations)
+            b = -1;
+    }
     pthread_mutex_unlock(&rc->mutex);
-    if (b >= rc->total_blocks)
-        return -1;
     return b;
 }
 
-void declareBlockFinished(render_context* rc, long block) {
-    //For now do nothing;
+void declareBlockFinished(render_context* rc, long block)
+{
+
 }
 
 void _startRenderThread(thread_context* c) {
     long block = getNextBlock(c->c);
     while (block != -1) {
-        printf("%i: block %li\n", c->thread_num, block);
+        //printf("%i: block %li\n", c->thread_num, block);
         long start = c->c->block_size * block;
         long end = c->c->block_size * (block + 1);
         for (long pixel = start; pixel < end; pixel++) {
-             int x = pixel % c->c->x;
-             int y = pixel / c->c->x;
-             c->c->output[pixel] = _renderPixel(c->c, x, y);
-             c->count_complete++;
-
+            _traceRay(c->c, pixel);
+            c->count_complete++;
         }
         declareBlockFinished(c->c, block);
         block = getNextBlock(c->c);
@@ -255,7 +246,9 @@ void _startRenderThread(thread_context* c) {
 
 render_context* createRenderContext() {
     render_context* rc = aligned_malloc(64, sizeof(render_context));
-    rc->entities = llCreate();
+    rc->ll_planes = llCreate();
+    rc->ll_spheres = llCreate();
+    rc->ll_triangles = llCreate();
     rc->fov = FOV_RADS;
     rc->current_block = 0;
     pthread_mutex_init(&rc->mutex, NULL);
@@ -263,33 +256,17 @@ render_context* createRenderContext() {
 }
 
 
-entity* createSphere(vector pos, float_t r, material m) {
-    sphere* s = aligned_malloc(64, sizeof(sphere));
-    s->p = pos;
-    s->r = r;
-    entity* e = aligned_malloc(64, sizeof(entity));
-    e->s = s;
-    e->type = SPHERE;
-    e->s->m = m;
-    e->s->e = e;
-    return e;
+
+void addSphere(render_context* rc, sphere* s) {
+    llPushBack(rc->ll_spheres, s);
 }
 
-entity* createPlane(vector pos, vector norm, material m1, material m2) {
-    plane* p = aligned_malloc(64, sizeof(plane));
-    p->p = pos;
-    p->n = norm;
-    entity* e = aligned_malloc(64, sizeof(entity));
-    e->p = p;
-    e->type = PLANE;
-    e->p->m1 = m1;
-    e->p->m2 = m2;
-    e->p->e = e;
-    return e;
+void addPlane(render_context* rc, plane* p) {
+    llPushBack(rc->ll_planes, p);
 }
 
-void addEntity(render_context* rc, entity* e) {
-    llPushBack(rc->entities, e);
+void addTriangle(render_context* rc, triangle* t) {
+    llPushBack(rc->ll_triangles, t);
 }
 
 
@@ -297,12 +274,24 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->x = x;
     rc->y = y;
     rc->num_threads = num_threads;
-    rc->block_size = x * y / (num_threads * 2);
+    rc->block_size = x * y / (num_threads * 10);
     rc->max_iterations = max_iterations;
     rc->total_blocks = (x * y) / rc->block_size;
+    rc->cur_itr = 0;
+    //Generate arrays
+    rc->planes = (plane**)llCreateArray(rc->ll_planes);
+    rc->num_planes = llGetCount(rc->ll_planes);
+    rc->spheres = (sphere**)llCreateArray(rc->ll_spheres);
+    rc->num_spheres = llGetCount(rc->ll_spheres);
+    rc->triangles = (triangle**)llCreateArray(rc->ll_triangles);
+    rc->num_triangles = llGetCount(rc->ll_spheres);
+    rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
+    rc->num_rays = x * y;
+    for (int i = 0; i < x; i++)
+        for (int j = 0; j < y; j++)
+            _generateOriginRay(rc, i, j);
     color* output;
     output = aligned_malloc(64, sizeof(color) * (x * y));
-    memset(output, 0, sizeof(color) * (x * y));
     rc->output = output;
     pthread_t threads[num_threads];
     thread_context contexts[num_threads];
@@ -315,7 +304,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
     }
     long complete = 0;
-    long total = x * y;
+    long total = x * y * rc->max_iterations;
     while (complete < total) {
         complete = 0;
         for (int i = 0; i < num_threads; i++) {
@@ -323,12 +312,14 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
         }
         double percentage = complete/(double)total;
         fprintf(stderr, "%lf%% Complete\n", percentage * 100);
-    //    generateBmp("/tmp/render.bmp", (char*) output, x, y);
         sleep(1);
     }
     for (int i = 0; i < num_threads; i++) {
          pthread_join(threads[i], NULL);
     }
+    for (int i = 0; i < x; i++)
+        for (int j = 0; j < y; j++)
+            output[x * y] = convertFloatToColor(rc->ray_color_pairs[i * j].c);
     generateBmp("render.bmp", (char*) output, x, y);
 
 }
