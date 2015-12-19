@@ -7,7 +7,7 @@
 #include "libdatastruct/linkedlist.h"
 
 
-#define FOV_RADS 1.5708
+#define FOV_RADS 1.5708;
 typedef struct {
     vector p;
     vector n;
@@ -62,16 +62,16 @@ intersection noHit() {
 }
 
 intersection Hit(vector pos, vector norm, material* m) {
-    return (intersection){norm, pos, m};
+    return (intersection){pos, norm, m};
 }
 
 static inline int isHit(intersection i) {
     return i.m != NULL;
 }
 
-intersection intersectSphere(sphere* s, ray r) {
+intersection intersectSphere(sphere* s, ray r){
     vector rs = s->p - r.p;
-    if (dot(r.d, s->p - r.p) <= 0)
+    if (dot(r.d, rs) <= 0)
        return noHit();
     float_t a = dot(r.d, r.d);
     rs = -rs;
@@ -82,7 +82,7 @@ intersection intersectSphere(sphere* s, ray r) {
         float_t t = ((-b) - sqrt(disc))/(2*a);
         vector p = VEC3F(COMPONENT(r.p).x + t * COMPONENT(r.d).x, COMPONENT(r.p).y + t * COMPONENT(r.d).y, COMPONENT(r.p).z + t * COMPONENT(r.d).z);
         vector n = p - s->p;
-        return Hit(p, n, &s->m);
+        return Hit(p, normalize(n), &s->m);
     }
     return noHit();
 }
@@ -97,11 +97,11 @@ intersection intersectPlane(plane* p, ray r) {
         return noHit();
     vector pos =  (r.p + SCALAR(r1) * r.d);
     material* m;
-    if (abs((int)(floor(COMPONENT(pos).x))) % 2 ==  abs((int)(floor(COMPONENT(pos).z))) % 2 )
+    if (abs((int)(floor(COMPONENT(pos).x / 5))) % 2 ==  abs((int)(floor(COMPONENT(pos).z / 5))) % 2 )
         m = &p->m1;
     else
         m = &p->m2;
-    return Hit(pos, p->n, m);
+    return Hit(pos, normalize(p->n), m);
 }
 
 intersection intersectTriangle(triangle* t, ray r) {
@@ -119,7 +119,7 @@ vector calculateDiffuse(vector diffuse_color, vector emission_color, vector ligh
     vector light = (surface_pos - light_pos);
     float_t distance = length(light);
     float_t square = 1 / (distance * distance);
-    if (square * COMPONENT(diffuse_color).w < 0.01)
+    if (square * COMPONENT(emission_color).w < 0.01)
         return ZERO_VECTOR();
     float_t incidence = dot(normalize(light), normalize(normal));
     if (incidence < 0)
@@ -128,14 +128,15 @@ vector calculateDiffuse(vector diffuse_color, vector emission_color, vector ligh
     cor_a.x *= cor_a.w;
     cor_a.y *= cor_a.w;
     cor_a.z *= cor_a.w;
+    cor_a.w = 0;
     vector cor = cor_a.v;
-    cor = (cor * SCALAR(square));
+    cor = (cor * diffuse_color) * SCALAR(square) * SCALAR(incidence);// * SCALAR(incidence));
     return cor;
 }
 
-void compareClosest(float_t* distance, intersection* closest, intersection* to_compare) {
-    float_t new_distance = length((to_compare->p - to_compare->p));
-    if (new_distance < *distance) {
+void compareClosest(ray r, float_t* distance, intersection* closest, intersection* to_compare) {
+    float_t new_distance = length((to_compare->p - r.p));
+    if (new_distance < *distance ) {
         *distance = new_distance;
         *closest = *to_compare;
     }
@@ -152,20 +153,25 @@ void _traceRay(render_context* c, long pixel) {
     int i;
     for (i = 0; i < c->num_spheres; i++, count++) {
         test = intersectSphere(c->spheres[i], p->r);
-        compareClosest(&distance, &closest, &test);
+        if (isHit(test))
+            compareClosest(p->r, &distance, &closest, &test);
     }
     for (i = 0; i < c->num_planes; i++, count++) {
         test = intersectPlane(c->planes[i], p->r);
-        compareClosest(&distance, &closest, &test);
+        if (isHit(test))
+           compareClosest(p->r, &distance, &closest, &test);
     }
     for (i = 0; i < c->num_triangles; i++, count++) {
         test = intersectTriangle(c->triangles[i], p->r);
-        compareClosest(&distance, &closest, &test);
+        if (isHit(test))
+           compareClosest(p->r, &distance, &closest, &test);
     }
     if (isHit(closest)) {
-        vector diffuse_color = calculateDiffuse(p->m->c_diffuse, closest.m->c_emissions, closest.p, p->r.p, closest.n);
+        vector diffuse_color = ZERO_VECTOR();
+        if (!isZero(closest.m->c_diffuse))
+            for (i = 0; i < c->num_spheres; i++, count++)
+                diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
         vector emission_color = closest.m->c_emissions;
-        printf("Here I am\n");
         p->c = diffuse_color + emission_color + p->c;
         p->m = closest.m;
         p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
@@ -202,8 +208,7 @@ void _generateOriginRay(render_context* c, int x, int y) {
     float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
     ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
-    c->ray_color_pairs[x * y] = (ray_color_pair){r, ZERO_VECTOR(), &null_material};
-    //printf("%u gen: %lx\n", x * y, (unsigned long)p->m);
+    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, ZERO_VECTOR(), &null_material};
 }
 
 
@@ -217,7 +222,7 @@ long getNextBlock(render_context* rc) {
         rc->cur_itr++;
         b = 0;
         rc->current_block = 0;
-        if (rc->cur_itr > rc->max_iterations)
+        if (rc->cur_itr >= rc->max_iterations)
             b = -1;
     }
     pthread_mutex_unlock(&rc->mutex);
@@ -232,7 +237,6 @@ void declareBlockFinished(render_context* rc, long block)
 void _startRenderThread(thread_context* c) {
     long block = getNextBlock(c->c);
     while (block != -1) {
-        //printf("%i: block %li\n", c->thread_num, block);
         long start = c->c->block_size * block;
         long end = c->c->block_size * (block + 1);
         for (long pixel = start; pixel < end; pixel++) {
@@ -274,7 +278,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->x = x;
     rc->y = y;
     rc->num_threads = num_threads;
-    rc->block_size = x * y / (num_threads * 10);
+    rc->block_size = (x * y) / (num_threads * 10);
     rc->max_iterations = max_iterations;
     rc->total_blocks = (x * y) / rc->block_size;
     rc->cur_itr = 0;
@@ -319,7 +323,7 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     }
     for (int i = 0; i < x; i++)
         for (int j = 0; j < y; j++)
-            output[x * y] = convertFloatToColor(rc->ray_color_pairs[i * j].c);
+            output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
     generateBmp("render.bmp", (char*) output, x, y);
 
 }

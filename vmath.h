@@ -75,7 +75,7 @@ static inline vector normalize(vector a) {
 
 static inline vector reflect(vector v, vector n) {
     float_t d = dot(v, n);
-    return (v - (SCALAR(d) * n * SCALAR(2.0)));
+    return (v - (SCALAR(d * 2.0) * n));
 }
 
 static inline int isZero(vector v) {
