@@ -47,6 +47,10 @@ static inline void* aligned_malloc(int align, size_t size) {
 #define SCALAR(x) (vector){x, x, x, x}
 #define ZERO_VECTOR() (vector){0.0, 0.0, 0.0, 0.0}
 
+#define S_SCALAR(x) {x, x, x, x}
+#define S_ZERO_VECTOR() {0.0, 0.0, 0.0, 0.0}
+
+
 static inline void print_vector(vector vect) {
     vector_accessor v = COMPONENT(vect);
     fprintf(stderr, "{%lf, %lf, %lf, %lf}\n", v.x, v.y, v.z, v.w);

@@ -199,9 +199,9 @@ color convertFloatToColor(vector cor) {
 }
 
 static const material null_material = {
-    SCALAR(1.0),
-     ZERO_VECTOR(),
-     ZERO_VECTOR(),
+     S_SCALAR(1.0),
+     S_ZERO_VECTOR(),
+     S_ZERO_VECTOR(),
 };
 
 void _generateOriginRay(render_context* c, int x, int y) {
@@ -277,6 +277,23 @@ void addTriangle(render_context* rc, triangle* t) {
     llPushBack(rc->ll_triangles, t);
 }
 
+typedef struct {
+     render_context* rc;
+     int start_x;
+     int end_x;
+     int start_y;
+     int end_y;
+     long count;
+} _originRayParams;
+
+void _generateOriginRayThread(_originRayParams* params) {
+    for (int x = params->start_x; x < params->end_x; x++) {
+        for (int y = params->start_y; y < params->end_y; y++) {
+            _generateOriginRay(params->rc, x, y);
+            params->count++;
+        }
+    }
+}
 
 void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations) {
     rc->x = x;
@@ -295,13 +312,49 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->num_triangles = llGetCount(rc->ll_spheres);
     rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
     rc->num_rays = x * y;
-    for (int i = 0; i < x; i++)
-        for (int j = 0; j < y; j++)
-            _generateOriginRay(rc, i, j);
+    printf("Generating origin rays\n");
+    int num_blocks = num_threads * num_threads;
+    _originRayParams params[num_blocks];
+
+    int block_size_y = y / num_threads;
+    int block_size_x = x / num_threads;
+    for (int i = 0; i < num_threads; i++) {
+        for (int j = 0; j < num_threads; j++) {
+             long o = (i * num_threads + j);
+             params[o].rc = rc;
+             params[o].start_x = j * block_size_x;
+             params[o].end_x = (j + 1) * block_size_x;
+             params[o].start_y = i * block_size_y;
+             params[o].end_y = (i + 1) * block_size_y;
+             if (params[o].end_y > y)
+                 params[o].end_y = y;
+             if (params[o].end_x > x)
+                 params[o].end_x = x;
+             params[o].count = 0;
+        }
+    }
+    pthread_t threads[num_blocks];
+    for (int i = 0; i < num_blocks; i++) {
+        pthread_create(&(threads[i]), NULL, (void* (*)(void*)) _generateOriginRayThread, (void*)&params[i]);
+    }
+    long count = 0;
+    long size = x * y;
+    while(count < size) {
+        count = 0;
+        for (int i = 0; i < num_blocks; i++) {
+             count += params[i].count;
+        }
+        double percentage = count/(double)size;
+        fprintf(stderr, "%lf%% Origin Rays Complete\n", percentage * 100);
+        sleep(1);
+    }
+    for (int i = 0; i < num_blocks; i++) {
+         pthread_join(threads[i], NULL);
+    }
+
     color* output;
     output = aligned_malloc(64, sizeof(color) * (x * y));
     rc->output = output;
-    pthread_t threads[num_threads];
     thread_context contexts[num_threads];
     for (int i = 0; i < num_threads; i++) {
         thread_context* c = &contexts[i];
@@ -313,14 +366,24 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     }
     long complete = 0;
     long total = x * y * rc->max_iterations;
+    double last_percentage = 0;
     while (complete < total) {
+        sleep(1);
         complete = 0;
         for (int i = 0; i < num_threads; i++) {
             complete += contexts[i].count_complete;
         }
         double percentage = complete/(double)total;
-        fprintf(stderr, "%lf%% Complete\n", percentage * 100);
-        sleep(1);
+        double difference = percentage - last_percentage;
+        last_percentage = percentage;
+        if (difference > 0) {
+             double estimated_mins = ((1.0 / (difference))) / 60;
+             long hours = estimated_mins / 60.0;
+             long mins = (long)estimated_mins % 60;
+            fprintf(stderr, "%lf%% Complete ETA %li hr, %li min\n", percentage * 100, hours, mins);
+        }
+        else
+            fprintf(stderr, "%lf%% Complete\n", percentage * 100);
     }
     for (int i = 0; i < num_threads; i++) {
          pthread_join(threads[i], NULL);
