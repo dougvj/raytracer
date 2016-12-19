@@ -1,4 +1,5 @@
 *.o
 *.d
 *.bmp
+*.mp4
 raytrace

@@ -46,6 +46,8 @@ struct render_context_t {
     triangle** triangles;
     int num_triangles;
 
+    //origin
+    double origin_x, origin_y, origin_z;
     //rays
     ray_color_pair* ray_color_pairs;
     long num_rays;
@@ -209,7 +211,7 @@ void _generateOriginRay(render_context* c, int x, int y) {
     float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = VEC3F(rx, ry, rz);
-    ray r = {VEC3F(0.0f, 0.0f, 0.0f), d};
+    ray r = {VEC3F(c->origin_x, c->origin_y, c->origin_z), d};
     c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, ZERO_VECTOR(), null_material};
 }
 
@@ -257,8 +259,8 @@ render_context* createRenderContext() {
     rc->ll_planes = llCreate();
     rc->ll_spheres = llCreate();
     rc->ll_triangles = llCreate();
+    rc->ray_color_pairs = NULL;
     rc->fov = FOV_RADS;
-    rc->current_block = 0;
     pthread_mutex_init(&rc->mutex, NULL);
     return rc;
 }
@@ -295,7 +297,11 @@ void _generateOriginRayThread(_originRayParams* params) {
     }
 }
 
-void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations) {
+void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations, float origin_x, float origin_y, float origin_z, int frame) {
+    rc->current_block = 0;
+    rc->origin_x = origin_x;
+    rc->origin_y = origin_y;
+    rc->origin_z = origin_z;
     rc->x = x;
     rc->y = y;
     rc->num_threads = num_threads;
@@ -304,20 +310,20 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->total_blocks = num_threads * 10;
     rc->cur_itr = 0;
     //Generate arrays
+    rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
     rc->planes = (plane**)llCreateArray(rc->ll_planes);
     rc->num_planes = llGetCount(rc->ll_planes);
     rc->spheres = (sphere**)llCreateArray(rc->ll_spheres);
     rc->num_spheres = llGetCount(rc->ll_spheres);
     rc->triangles = (triangle**)llCreateArray(rc->ll_triangles);
     rc->num_triangles = llGetCount(rc->ll_spheres);
-    rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
     rc->num_rays = x * y;
     printf("Generating origin rays\n");
     int num_blocks = num_threads * num_threads;
     _originRayParams params[num_blocks];
 
-    int block_size_y = y / num_threads;
-    int block_size_x = x / num_threads;
+    int block_size_y = (y / num_threads) + 1;
+    int block_size_x = (x / num_threads) + 1;
     for (int i = 0; i < num_threads; i++) {
         for (int j = 0; j < num_threads; j++) {
              long o = (i * num_threads + j);
@@ -377,10 +383,12 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
         double difference = percentage - last_percentage;
         last_percentage = percentage;
         if (difference > 0) {
-             double estimated_mins = ((1.0 / (difference))) / 60;
+             double estimated_secs = ((1.0 / (difference)));
+	     double estimated_mins = estimated_secs / 60.0;
              long hours = estimated_mins / 60.0;
              long mins = (long)estimated_mins % 60;
-            fprintf(stderr, "%lf%% Complete ETA %li hr, %li min\n", percentage * 100, hours, mins);
+	     long secs = (long)estimated_secs;
+            fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs\n", percentage * 100, hours, mins, secs);
         }
         else
             fprintf(stderr, "%lf%% Complete\n", percentage * 100);
@@ -391,6 +399,12 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     for (int i = 0; i < x; i++)
         for (int j = 0; j < y; j++)
             output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
-    generateBmp("render.bmp", (char*) output, x, y);
-
+    char filename[256];
+    sprintf(filename, "render_output/%d.bmp", frame);
+    generateBmp(filename, (char*) output, x, y);
+    //render cleanup
+    free(rc->planes);
+    free(rc->spheres);
+    free(rc->triangles);
+    free(rc->ray_color_pairs);
 }

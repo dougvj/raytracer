@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "trace.h"
+#include <time.h>
 #include "geometric_primitives.h"
 
 float frand() {
@@ -12,6 +13,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_iterations>\n");
         return 255;
     }
+    srand(time(NULL));
     int max_iterations = atoi(argv[4]);
     int num_threads = atoi(argv[3]);
     int w = atoi(argv[1]);
@@ -66,7 +68,7 @@ int main(int argc, char** argv) {
             createPlane(VEC3F(0.0, -6.0, 0.0),
                         VEC3F(0.0, 1.0, 0.0),
                 (material) {
-                    VEC3F(0.5, 0.5, 0.5),
+                    VEC3F(0.25, 0.25, 0.25),
                     VEC3F(0.75, 1.0, 1.0),
                     VEC4F(0.0, 0.0, 0.0, 0.0),
                 },
@@ -87,6 +89,9 @@ int main(int argc, char** argv) {
                 })
         );
     }
-    renderScene(rc, w, h, num_threads, max_iterations);
+    for (int i = 0; i < 480; i++) {
+	fprintf(stderr, "Generating frame %d\n", i);
+    	renderScene(rc, w, h, num_threads, max_iterations, 0.0, 0.0, -10 + (i/10.0), i);
+    }
     return 0;
 }
