@@ -66,7 +66,7 @@ set_test:
 ifdef DEBUG
 CFLAGS+= -g -Wno-psabi -Wno-maybe-uninitialized
 else 
-CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialized
+CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialize -ftree-vectorize -fopt-info-vec-missed -fomit-frame-pointer -Winline -funroll-loops
 endif
 ifdef PHI
 CFLAGS = -O3 -mmic -mkl 
