@@ -140,61 +140,63 @@ void compareClosest(ray r, float_t* distance, intersection* closest, intersectio
     float_t new_distance = length((to_compare->p - r.p));
     if (new_distance < *distance ) {
         *distance = new_distance;
-    ;    *closest = *to_compare;
+        *closest = *to_compare;
     }
 }
 
 //Here is where all the magic happens
-void _traceRay(render_context* c, long pixel) {
+void _traceRay(render_context* c, long pixel, int max_bounces) {
     //Grab the ray and color that we are currently dealing with
     ray_color_pair* p = &(c->ray_color_pairs[pixel]);
-    //If we have a 0 vector return
-    if (IS_VZERO(p->r.d))
-        return;
-    //Create a new intersection object initialized to no hit that will
-    //hold the closest intersection
-    intersection closest = noHit();
-    //Create a new intersection object which will be used to test new intersections
-    intersection test;
-    //And use our distance compare
-    float_t distance = FLOAT_T_MAX;
-    int count = 0;
-    int i;
-    //Go through each sphere
-    for (i = 0; i < c->num_spheres; i++, count++) {
-        test = intersectSphere(c->spheres[i], p->r);
-        if (isHit(test))
-            compareClosest(p->r, &distance, &closest, &test);
-    }
-    //Go trhough each plane
-    for (i = 0; i < c->num_planes; i++, count++) {
-        test = intersectPlane(c->planes[i], p->r);
-        if (isHit(test))
-           compareClosest(p->r, &distance, &closest, &test);
-    }
-    //Go through each triangle
-    for (i = 0; i < c->num_triangles; i++, count++) {
-        test = intersectTriangle(c->triangles[i], p->r);
-        if (isHit(test))
-           compareClosest(p->r, &distance, &closest, &test);
-    }
-    //Now if our closest object is a hit, then we know we intersected something
-    if (isHit(closest)) {
-        //We need to calculate our diffuse color
-        vector diffuse_color = (vector) {0};
-        if (!IS_VZERO(closest.m->c_diffuse))
-            for (i = 0; i < c->num_spheres; i++, count++)
-                diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
-        vector emission_color = closest.m->c_emissions;
-        p->c = (diffuse_color + emission_color) * p->m.c_reflect + p->c;
-        p->m.c_reflect *= closest.m->c_reflect;
-        p->m.c_diffuse = closest.m->c_diffuse;
-        p->m.c_emissions = closest.m->c_emissions;
-        //This is our next ray
-        p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
-    }
-    else {
-        p->r = (ray){{0}, {0}};
+    for (int n = 0; n < max_bounces; n++) {
+        //If we have a 0 vector return
+        if (IS_VZERO(p->r.d))
+            return;
+        //Create a new intersection object initialized to no hit that will
+        //hold the closest intersection
+        intersection closest = noHit();
+        //Create a new intersection object which will be used to test new intersections
+        intersection test;
+        //And use our distance compare
+        float_t distance = FLOAT_T_MAX;
+        int count = 0;
+        int i;
+        //Go through each sphere
+        for (i = 0; i < c->num_spheres; i++, count++) {
+            test = intersectSphere(c->spheres[i], p->r);
+            if (isHit(test))
+                compareClosest(p->r, &distance, &closest, &test);
+        }
+        //Go trhough each plane
+        for (i = 0; i < c->num_planes; i++, count++) {
+            test = intersectPlane(c->planes[i], p->r);
+            if (isHit(test))
+               compareClosest(p->r, &distance, &closest, &test);
+        }
+        //Go through each triangle
+        for (i = 0; i < c->num_triangles; i++, count++) {
+            test = intersectTriangle(c->triangles[i], p->r);
+            if (isHit(test))
+               compareClosest(p->r, &distance, &closest, &test);
+        }
+        //Now if our closest object is a hit, then we know we intersected something
+        if (isHit(closest)) {
+            //We need to calculate our diffuse color
+            vector diffuse_color = (vector) {0};
+            if (!IS_VZERO(closest.m->c_diffuse))
+                for (i = 0; i < c->num_spheres; i++, count++)
+                    diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
+            vector emission_color = closest.m->c_emissions;
+            p->c = (diffuse_color + emission_color) * p->m.c_reflect + p->c;
+            p->m.c_reflect *= closest.m->c_reflect;
+            p->m.c_diffuse = closest.m->c_diffuse;
+            p->m.c_emissions = closest.m->c_emissions;
+            //This is our next ray
+            p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
+        }
+        else {
+            p->r = (ray){{0}, {0}};
+        }
     }
 }
 
@@ -230,20 +232,13 @@ void _generateOriginRay(render_context* c, int x, int y) {
 }
 
 
-
+#define NO_MORE_BLOCKS -1
 
 long getNextBlock(render_context* rc) {
     pthread_mutex_lock(&rc->mutex);
-    long b =  rc->current_block;
-    rc->current_block++;
+    long b =  rc->current_block++;
     if (b >= rc->total_blocks ) {
-        rc->cur_itr++;
-        if (rc->cur_itr >= rc->max_bounces)
-            b = -1;
-        else {
-            b = 0;
-            rc->current_block = 0;
-        }
+        b = NO_MORE_BLOCKS;
     }
     pthread_mutex_unlock(&rc->mutex);
     return b;
@@ -256,11 +251,11 @@ void declareBlockFinished(render_context* rc, long block)
 
 void _startRenderThread(thread_context* c) {
     long block = getNextBlock(c->rc);
-    while (block != -1) {
+    while (block != NO_MORE_BLOCKS) {
         long start = c->rc->block_size * block;
         long end = c->rc->block_size * (block + 1);
         for (long pixel = start; pixel < end; pixel++) {
-            _traceRay(c->rc, pixel);
+            _traceRay(c->rc, pixel, c->rc->max_bounces);
             c->count_complete++;
         }
         declareBlockFinished(c->rc, block);
@@ -385,18 +380,18 @@ void renderScene(render_context* rc, render_parameters* params) {
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
     }
     long complete = 0;
-    long total = x * y * rc->max_bounces;
+    long total = x * y;
     double last_percentage = 0;
     long last_complete = 0;
     while (complete < total) {
-        sleep(1);
+        usleep(250000);
         complete = 0;
         for (int i = 0; i < params->num_threads; i++) {
             complete += contexts[i].count_complete;
         }
-        long complete_difference = complete - last_complete;
+        long complete_difference = (complete - last_complete) * 4.0;
         double percentage = complete/(double)total;
-        double difference = percentage - last_percentage;
+        double difference = (percentage - last_percentage) * 4.0;
         last_percentage = percentage;
         last_complete = complete;
         if (difference > 0) {
@@ -405,7 +400,7 @@ void renderScene(render_context* rc, render_parameters* params) {
              long hours = estimated_mins / 60.0;
              long mins = (long)estimated_mins % 60;
 	         long secs = (long)estimated_secs % 60;
-             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li traces per sec\n", percentage * 100, hours, mins, secs, complete_difference);
+             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li pixels per sec\n", percentage * 100, hours, mins, secs, complete_difference);
         }
         else
             fprintf(stderr, "%lf%% Complete\n", percentage * 100);
