@@ -9,12 +9,13 @@ float frand() {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 5) {
-        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_iterations>\n");
-        return 255;
+    if (argc < 6) {
+        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_bounces> <rays_per_pixel\n");
+        return 1;
     }
     srand(time(NULL));
-    int max_iterations = atoi(argv[4]);
+    int rays_per_pixel = atoi(argv[5]);
+    int max_bounces = atoi(argv[4]);
     int num_threads = atoi(argv[3]);
     int w = atoi(argv[1]);
     int h = atoi(argv[2]);
@@ -89,9 +90,22 @@ int main(int argc, char** argv) {
                 })
         );
     }
-    for (int i = 0; i < 480; i++) {
-	fprintf(stderr, "Generating frame %d\n", i);
-    	renderScene(rc, w, h, num_threads, max_iterations, 0.0, 0.0, -10 + (i/10.0), i);
+    render_parameters params = (render_parameters){ 
+        .x = w, 
+        .y = h,
+        .num_threads = num_threads,
+        .max_bounces = max_bounces,
+        .rays_per_pixel = rays_per_pixel,
+        .origin_x = 0.0,
+        .origin_y = 0.0,
+        //origin_z and frame filled in loop
+ 
+    }
+    for (int i = 0; i < 1; i++) {
+        param.origin_z = -10 + (i/10.0);
+        param.frame = i;
+    	fprintf(stderr, "Generating frame %d\n", i);
+    	renderScene(rc, &params);
     }
     return 0;
 }

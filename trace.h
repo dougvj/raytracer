@@ -24,6 +24,18 @@ render_context* createRenderContext();
 void addSphere(render_context* rc, sphere* s);
 void addPlane(render_context* rc, plane* p);
 void addTriangle(render_context* rc, triangle* t);
-void renderScene(render_context* c, int x, int y, int num_threads, int max_iterations, float origin_x, float origin_y, float origin_z, int frame);
+
+typedef struct {
+    int x;
+    int y;
+    int num_threads;
+    int max_bounces;
+    int rays_per_pixel;
+    float origin_x;
+    float origin_y;
+    float origin_z;
+    int frame;
+} render_parameters;
+void renderScene(render_context* rc, render_parameters* params);
 
 #endif

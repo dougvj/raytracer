@@ -7,7 +7,7 @@
 #include "libdatastruct/linkedlist.h"
 
 
-#define FOV_RADS 1.5708;
+#define FOV_RADS 1.5708
 typedef struct {
     vector p;
     vector n;
@@ -15,7 +15,7 @@ typedef struct {
 } intersection;
 
 typedef struct {
-    render_context* c;
+    render_context* rc;
     int thread_num;
     int count_complete;
     int num_traces;
@@ -31,7 +31,8 @@ struct render_context_t {
      int num_threads;
      int x;
      int y;
-     int max_iterations;
+     int max_bounces;
+     int rays_per_pixel;
      int cur_itr;
      float_t fov;
 
@@ -116,7 +117,8 @@ vector getBackground(ray r) {
 }
 
 vector calculateDiffuse(vector diffuse_color, vector emission_color, vector light_pos, vector surface_pos, vector normal) {
-    if (isZero(diffuse_color) || COMPONENT(emission_color).w == 0)
+    //If the diffuse color is 0 that means we don't actually diffuse light
+    if (diffuse_color == (vector){0} || COMPONENT(emission_color).w == 1)
         return ZERO_VECTOR();
     vector light = (surface_pos - light_pos);
     float_t distance = length(light);
@@ -140,37 +142,49 @@ void compareClosest(ray r, float_t* distance, intersection* closest, intersectio
     float_t new_distance = length((to_compare->p - r.p));
     if (new_distance < *distance ) {
         *distance = new_distance;
-        *closest = *to_compare;
+    ;    *closest = *to_compare;
     }
 }
 
+//Here is where all the magic happens
 void _traceRay(render_context* c, long pixel) {
+    //Grab the ray and color that we are currently dealing with
     ray_color_pair* p = &(c->ray_color_pairs[pixel]);
-    if (isZero(p->r.d))
+    //If we have a 0 vector return
+    if (p->r.d == (vector){0})
         return;
+    //Create a new intersection object initialized to no hit that will
+    //hold the closest intersection
     intersection closest = noHit();
+    //Create a new intersection object which will be used to test new intersections
     intersection test;
+    //And use our distance compare
     float_t distance = FLOAT_T_MAX;
     int count = 0;
     int i;
+    //Go through each sphere
     for (i = 0; i < c->num_spheres; i++, count++) {
         test = intersectSphere(c->spheres[i], p->r);
         if (isHit(test))
             compareClosest(p->r, &distance, &closest, &test);
     }
+    //Go trhough each plane
     for (i = 0; i < c->num_planes; i++, count++) {
         test = intersectPlane(c->planes[i], p->r);
         if (isHit(test))
            compareClosest(p->r, &distance, &closest, &test);
     }
+    //Go through each triangle
     for (i = 0; i < c->num_triangles; i++, count++) {
         test = intersectTriangle(c->triangles[i], p->r);
         if (isHit(test))
            compareClosest(p->r, &distance, &closest, &test);
     }
+    //Now if our closest object is a hit, then we know we intersected something
     if (isHit(closest)) {
+        //We need to calculate our diffuse color  
         vector diffuse_color = ZERO_VECTOR();
-        if (!isZero(closest.m->c_diffuse))
+        if (!closest.m->c_diffuse == (vector){0})
             for (i = 0; i < c->num_spheres; i++, count++)
                 diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
         vector emission_color = closest.m->c_emissions;
@@ -178,6 +192,7 @@ void _traceRay(render_context* c, long pixel) {
         p->m.c_reflect *= closest.m->c_reflect;
         p->m.c_diffuse = closest.m->c_diffuse;
         p->m.c_emissions = closest.m->c_emissions;
+        //This is our next ray
         p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
     }
     else {
@@ -186,7 +201,7 @@ void _traceRay(render_context* c, long pixel) {
 }
 
 color convertFloatToColor(vector cor) {
-    vector_accessor c = COMPONENT(cor);
+    vector c = cor;
     color co;
     if (c.x > 1.0f)
         c.x = 1.0f;
@@ -194,7 +209,7 @@ color convertFloatToColor(vector cor) {
         c.y = 1.0f;
     if (c.z > 1.0f)
         c.z = 1.0f;
-    co.r = c.x * 255;
+    co.r = c.x * 256;
     co.g = c.y * 255;
     co.b = c.z * 255;
     return co;
@@ -224,7 +239,7 @@ long getNextBlock(render_context* rc) {
     rc->current_block++;
     if (b >= rc->total_blocks ) {
         rc->cur_itr++;
-        if (rc->cur_itr >= rc->max_iterations)
+        if (rc->cur_itr >= rc->max_bounces)
             b = -1;
         else {
             b = 0;
@@ -241,20 +256,20 @@ void declareBlockFinished(render_context* rc, long block)
 }
 
 void _startRenderThread(thread_context* c) {
-    long block = getNextBlock(c->c);
+    long block = getNextBlock(c->rc);
     while (block != -1) {
-        long start = c->c->block_size * block;
-        long end = c->c->block_size * (block + 1);
+        long start = c->rc->block_size * block;
+        long end = c->rc->block_size * (block + 1);
         for (long pixel = start; pixel < end; pixel++) {
-            _traceRay(c->c, pixel);
+            _traceRay(c->rc, pixel);
             c->count_complete++;
         }
-        declareBlockFinished(c->c, block);
-        block = getNextBlock(c->c);
+        declareBlockFinished(c->rc, block);
+        block = getNextBlock(c->rc);
     }
 }
 
-render_context* createRenderContext() {
+render_context* createrender_context() {
     render_context* rc = aligned_malloc(64, sizeof(render_context));
     rc->ll_planes = llCreate();
     rc->ll_spheres = llCreate();
@@ -297,18 +312,20 @@ void _generateOriginRayThread(_originRayParams* params) {
     }
 }
 
-void renderScene(render_context* rc, int x, int y, int num_threads, int max_iterations, float origin_x, float origin_y, float origin_z, int frame) {
+void renderScene(render_context* rc, render_parameters* params) {
     rc->current_block = 0;
-    rc->origin_x = origin_x;
-    rc->origin_y = origin_y;
-    rc->origin_z = origin_z;
-    rc->x = x;
-    rc->y = y;
-    rc->num_threads = num_threads;
-    rc->block_size = (x * y) / (num_threads * 10);
-    rc->max_iterations = max_iterations;
-    rc->total_blocks = num_threads * 10;
+    rc->origin_x = params->origin_x;
+    rc->origin_y = params->origin_y;
+    rc->origin_z = params->origin_z;
+    rc->x = params->x;
+    rc->y = params->y;
+    rc->num_threads = params->num_threads;
+    rc->block_size = (rc->x * rc->y) / (params->num_threads * 10);
+    rc->max_bounces = params->max_bounces;
+    rc->total_blocks = params->num_threads * 10;
     rc->cur_itr = 0;
+    int x = params->x;
+    int y = params->y;
     //Generate arrays
     rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
     rc->planes = (plane**)llCreateArray(rc->ll_planes);
@@ -319,36 +336,36 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     rc->num_triangles = llGetCount(rc->ll_spheres);
     rc->num_rays = x * y;
     printf("Generating origin rays\n");
-    int num_blocks = num_threads * num_threads;
-    _originRayParams params[num_blocks];
+    int num_blocks = params->num_threads * params->num_threads;
+    _originRayParams ray_params[num_blocks];
 
-    int block_size_y = (y / num_threads) + 1;
-    int block_size_x = (x / num_threads) + 1;
-    for (int i = 0; i < num_threads; i++) {
-        for (int j = 0; j < num_threads; j++) {
-             long o = (i * num_threads + j);
-             params[o].rc = rc;
-             params[o].start_x = j * block_size_x;
-             params[o].end_x = (j + 1) * block_size_x;
-             params[o].start_y = i * block_size_y;
-             params[o].end_y = (i + 1) * block_size_y;
-             if (params[o].end_y > y)
-                 params[o].end_y = y;
-             if (params[o].end_x > x)
-                 params[o].end_x = x;
-             params[o].count = 0;
+    int block_size_y = (y / params->num_threads) + 1;
+    int block_size_x = (x / params->num_threads) + 1;
+    for (int i = 0; i < params->num_threads; i++) {
+        for (int j = 0; j < params->num_threads; j++) {
+             long o = (i * params->num_threads + j);
+             ray_params[o].rc = rc;
+             ray_params[o].start_x = j * block_size_x;
+             ray_params[o].end_x = (j + 1) * block_size_x;
+             ray_params[o].start_y = i * block_size_y;
+             ray_params[o].end_y = (i + 1) * block_size_y;
+             if (ray_params[o].end_y > y)
+                 ray_params[o].end_y = y;
+             if (ray_params[o].end_x > x)
+                 ray_params[o].end_x = x;
+             ray_params[o].count = 0;
         }
     }
     pthread_t threads[num_blocks];
     for (int i = 0; i < num_blocks; i++) {
-        pthread_create(&(threads[i]), NULL, (void* (*)(void*)) _generateOriginRayThread, (void*)&params[i]);
+        pthread_create(&(threads[i]), NULL, (void* (*)(void*)) _generateOriginRayThread, (void*)&ray_params[i]);
     }
     long count = 0;
     long size = x * y;
     while(count < size) {
         count = 0;
         for (int i = 0; i < num_blocks; i++) {
-             count += params[i].count;
+             count += ray_params[i].count;
         }
         double percentage = count/(double)size;
         fprintf(stderr, "%lf%% Origin Rays Complete\n", percentage * 100);
@@ -361,46 +378,49 @@ void renderScene(render_context* rc, int x, int y, int num_threads, int max_iter
     color* output;
     output = aligned_malloc(64, sizeof(color) * (x * y));
     rc->output = output;
-    thread_context contexts[num_threads];
-    for (int i = 0; i < num_threads; i++) {
+    thread_context contexts[params->num_threads];
+    for (int i = 0; i < params->num_threads; i++) {
         thread_context* c = &contexts[i];
-        c->c = rc;
+        c->rc = rc;
         c->thread_num = i;
         c->count_complete = 0;
         c->num_traces = 0;
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
     }
     long complete = 0;
-    long total = x * y * rc->max_iterations;
+    long total = x * y * rc->max_bounces;
     double last_percentage = 0;
+    long last_complete = 0;
     while (complete < total) {
         sleep(1);
         complete = 0;
-        for (int i = 0; i < num_threads; i++) {
+        for (int i = 0; i < params->num_threads; i++) {
             complete += contexts[i].count_complete;
         }
+        long complete_difference = complete - last_complete;
         double percentage = complete/(double)total;
         double difference = percentage - last_percentage;
         last_percentage = percentage;
+        last_complete = complete;
         if (difference > 0) {
              double estimated_secs = ((1.0 / (difference)));
-	     double estimated_mins = estimated_secs / 60.0;
+             double estimated_mins = estimated_secs / 60.0;
              long hours = estimated_mins / 60.0;
              long mins = (long)estimated_mins % 60;
-	     long secs = (long)estimated_secs;
-            fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs\n", percentage * 100, hours, mins, secs);
+	         long secs = (long)estimated_secs;
+             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li rays per sec\n", percentage * 100, hours, mins, secs, complete_difference);
         }
         else
             fprintf(stderr, "%lf%% Complete\n", percentage * 100);
     }
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < params->num_threads; i++) {
          pthread_join(threads[i], NULL);
     }
     for (int i = 0; i < x; i++)
         for (int j = 0; j < y; j++)
             output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
     char filename[256];
-    sprintf(filename, "render_output/%d.bmp", frame);
+    sprintf(filename, "render_output/%d.bmp", params->frame);
     generateBmp(filename, (char*) output, x, y);
     //render cleanup
     free(rc->planes);
