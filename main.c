@@ -3,6 +3,8 @@
 #include "trace.h"
 #include <time.h>
 #include "geometric_primitives.h"
+//#include "window.h"
+#include "bmp.h"
 
 float frand() {
     return rand() / (float)RAND_MAX;
@@ -91,6 +93,8 @@ int main(int argc, char** argv) {
                 })
         );
     }
+    //Allocate the output frame buffer
+    char* output_buffer = aligned_malloc(64, sizeof(char[3]) * w * h);
     render_parameters params = (render_parameters){
         .x = w,
         .y = h,
@@ -99,14 +103,17 @@ int main(int argc, char** argv) {
         .rays_per_pixel = rays_per_pixel,
         .origin_x = 0.0,
         .origin_y = 0.0,
+        .output_buffer = output_buffer
         //origin_z and frame filled in loop
 
     };
     for (int i = 0; i < 1; i++) {
         params.origin_z = -10 + (i/10.0);
-        params.frame = i;
     	fprintf(stderr, "Generating frame %d\n", i);
     	renderScene(rc, &params);
+        char filename[256];
+        sprintf(filename, "render_output/%d.bmp", i);
+        generateBmp(filename, output_buffer, w, h);
     }
     return 0;
 }

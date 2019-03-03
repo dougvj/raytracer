@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "bmp.h"
 #include <string.h>
 #include "libdatastruct/linkedlist.h"
 
@@ -52,12 +51,12 @@ struct render_context_t {
     //rays
     ray_color_pair* ray_color_pairs;
     long num_rays;
-
-     color* output;
-     pthread_mutex_t mutex;
-     long current_block;
-     long block_size;
-     long total_blocks;
+    //output buffer
+    color* output;
+    pthread_mutex_t mutex;
+    long current_block;
+    long block_size;
+    long total_blocks;
 } render_context_t;
 
 intersection noHit() {
@@ -335,6 +334,7 @@ void renderScene(render_context* rc, render_parameters* params) {
     rc->triangles = (triangle**)llCreateArray(rc->ll_triangles);
     rc->num_triangles = llGetCount(rc->ll_spheres);
     rc->num_rays = x * y;
+    rc->output = (color*) params->output_buffer;
     printf("Generating origin rays\n");
     int num_blocks = params->num_threads * params->num_threads;
     _originRayParams ray_params[num_blocks];
@@ -375,9 +375,6 @@ void renderScene(render_context* rc, render_parameters* params) {
          pthread_join(threads[i], NULL);
     }
 
-    color* output;
-    output = aligned_malloc(64, sizeof(color) * (x * y));
-    rc->output = output;
     thread_context contexts[params->num_threads];
     for (int i = 0; i < params->num_threads; i++) {
         thread_context* c = &contexts[i];
@@ -407,8 +404,8 @@ void renderScene(render_context* rc, render_parameters* params) {
              double estimated_mins = estimated_secs / 60.0;
              long hours = estimated_mins / 60.0;
              long mins = (long)estimated_mins % 60;
-	         long secs = (long)estimated_secs;
-             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li rays per sec\n", percentage * 100, hours, mins, secs, complete_difference);
+	         long secs = (long)estimated_secs % 60;
+             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li traces per sec\n", percentage * 100, hours, mins, secs, complete_difference);
         }
         else
             fprintf(stderr, "%lf%% Complete\n", percentage * 100);
@@ -418,10 +415,7 @@ void renderScene(render_context* rc, render_parameters* params) {
     }
     for (int i = 0; i < x; i++)
         for (int j = 0; j < y; j++)
-            output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
-    char filename[256];
-    sprintf(filename, "render_output/%d.bmp", params->frame);
-    generateBmp(filename, (char*) output, x, y);
+            rc->output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
     //render cleanup
     free(rc->planes);
     free(rc->spheres);

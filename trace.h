@@ -6,8 +6,8 @@
 
 
 typedef struct __attribute__((aligned(64))) {
-    vector p;
-    vector d;
+    vector p; //position
+    vector d; //direction
 } ray;
 
 typedef union {
@@ -25,12 +25,14 @@ void addSphere(render_context* rc, sphere* s);
 void addPlane(render_context* rc, plane* p);
 void addTriangle(render_context* rc, triangle* t);
 
+
 typedef struct {
     int x;
     int y;
     int num_threads;
     int max_bounces;
     int rays_per_pixel;
+    char* output_buffer;
     float origin_x;
     float origin_y;
     float origin_z;
