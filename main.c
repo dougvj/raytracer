@@ -13,7 +13,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_bounces> <rays_per_pixel\n");
         return 1;
     }
-    srand(time(NULL));
+    srand(100);
+    //srand(time(NULL));
     int rays_per_pixel = atoi(argv[5]);
     int max_bounces = atoi(argv[4]);
     int num_threads = atoi(argv[3]);
