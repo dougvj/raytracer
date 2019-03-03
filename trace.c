@@ -61,7 +61,7 @@ struct render_context_t {
 } render_context_t;
 
 intersection noHit() {
-    return (intersection){ZERO_VECTOR(), ZERO_VECTOR(), NULL};
+    return (intersection){{0}, {0}, NULL};
 }
 
 intersection Hit(vector pos, vector norm, material* m) {
@@ -78,12 +78,12 @@ intersection intersectSphere(sphere* s, ray r){
        return noHit();
     float_t a = dot(r.d, r.d);
     rs = -rs;
-    float_t b = dot(SCALAR(2.0) * r.d, rs);
+    float_t b = dot(2.0 * r.d, rs);
     float_t c = dot(rs, rs) - s->r*s->r;
     float_t disc = (b*b) - (4 * a * c);
     if (disc >= 0) {
         float_t t = ((-b) - sqrt(disc))/(2*a);
-        vector p = VEC3F(COMPONENT(r.p).x + t * COMPONENT(r.d).x, COMPONENT(r.p).y + t * COMPONENT(r.d).y, COMPONENT(r.p).z + t * COMPONENT(r.d).z);
+        vector p = V3(X(r.p) + t * X(r.d), Y(r.p) + t * Y(r.d), Z(r.p) + t * Z(r.d));
         vector n = p - s->p;
         return Hit(p, normalize(n), &s->m);
     }
@@ -98,9 +98,9 @@ intersection intersectPlane(plane* p, ray r) {
     float_t r1 = n/d;
     if (r1 <= 1)
         return noHit();
-    vector pos =  (r.p + SCALAR(r1) * r.d);
+    vector pos =  (r.p + r1 * r.d);
     material* m;
-    if (abs((int)(floor(COMPONENT(pos).x / 5))) % 2 ==  abs((int)(floor(COMPONENT(pos).z / 5))) % 2 )
+    if (abs((int)(floor(X(pos) / 5))) % 2 ==  abs((int)(floor(Z(pos) / 5))) % 2 )
         m = &p->m1;
     else
         m = &p->m2;
@@ -113,28 +113,27 @@ intersection intersectTriangle(triangle* t, ray r) {
 }
 
 vector getBackground(ray r) {
-    return VEC4F(0.0f, 0.0f, 0.0f, 0.0f);
+    return V4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 vector calculateDiffuse(vector diffuse_color, vector emission_color, vector light_pos, vector surface_pos, vector normal) {
     //If the diffuse color is 0 that means we don't actually diffuse light
-    if (diffuse_color == (vector){0} || COMPONENT(emission_color).w == 1)
-        return ZERO_VECTOR();
+    if (IS_VZERO(diffuse_color) || W(emission_color) == 1)
+        return (vector){0};
     vector light = (surface_pos - light_pos);
     float_t distance = length(light);
     float_t square = 1 / (distance * distance);
-    if (square * COMPONENT(emission_color).w < 0.01)
-        return ZERO_VECTOR();
+    if (square * W(emission_color) < 0.01)
+        return (vector){0};
     float_t incidence = dot(normalize(light), normalize(normal));
     if (incidence < 0)
         incidence *= -1;
-    vector_accessor cor_a = COMPONENT(emission_color);
-    cor_a.x *= cor_a.w;
-    cor_a.y *= cor_a.w;
-    cor_a.z *= cor_a.w;
-    cor_a.w = 0;
-    vector cor = cor_a.v;
-    cor = (cor * diffuse_color) * SCALAR(square) * SCALAR(incidence);// * SCALAR(incidence));
+    vector cor = emission_color;
+    X(cor) *= W(cor);
+    Y(cor) *= W(cor);
+    Z(cor) *= W(cor);
+    W(cor) = 0;
+    cor = (cor * diffuse_color) * square * incidence;// * SCALAR(incidence));
     return cor;
 }
 
@@ -151,7 +150,7 @@ void _traceRay(render_context* c, long pixel) {
     //Grab the ray and color that we are currently dealing with
     ray_color_pair* p = &(c->ray_color_pairs[pixel]);
     //If we have a 0 vector return
-    if (p->r.d == (vector){0})
+    if (IS_VZERO(p->r.d))
         return;
     //Create a new intersection object initialized to no hit that will
     //hold the closest intersection
@@ -182,9 +181,9 @@ void _traceRay(render_context* c, long pixel) {
     }
     //Now if our closest object is a hit, then we know we intersected something
     if (isHit(closest)) {
-        //We need to calculate our diffuse color  
-        vector diffuse_color = ZERO_VECTOR();
-        if (!closest.m->c_diffuse == (vector){0})
+        //We need to calculate our diffuse color
+        vector diffuse_color = (vector) {0};
+        if (!IS_VZERO(closest.m->c_diffuse))
             for (i = 0; i < c->num_spheres; i++, count++)
                 diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
         vector emission_color = closest.m->c_emissions;
@@ -196,38 +195,39 @@ void _traceRay(render_context* c, long pixel) {
         p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
     }
     else {
-        p->r = (ray){ZERO_VECTOR(), ZERO_VECTOR()};
+        p->r = (ray){{0}, {0}};
     }
 }
 
 color convertFloatToColor(vector cor) {
     vector c = cor;
     color co;
-    if (c.x > 1.0f)
-        c.x = 1.0f;
-    if (c.y > 1.0f)
-        c.y = 1.0f;
-    if (c.z > 1.0f)
-        c.z = 1.0f;
-    co.r = c.x * 256;
-    co.g = c.y * 255;
-    co.b = c.z * 255;
+    //TODO I think we need color space adjustment here
+    if (X(c) > 1.0f)
+        X(c) = 1.0f;
+    if (Y(c) > 1.0f)
+        Y(c) = 1.0f;
+    if (Z(c) > 1.0f)
+        Z(c) = 1.0f;
+    co.r = X(c) * 255;
+    co.g = Y(c) * 255;
+    co.b = Z(c) * 255;
     return co;
 }
 
 static const material null_material = {
-     S_SCALAR(1.0),
-     S_ZERO_VECTOR(),
-     S_ZERO_VECTOR(),
+     V4(1.0, 1.0, 1.0, 1.0),
+    {0},
+    {0},
 };
 
 void _generateOriginRay(render_context* c, int x, int y) {
     float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
     float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     float_t rz = 1.0f / tan(c->fov / 2.0f);
-    vector d = VEC3F(rx, ry, rz);
-    ray r = {VEC3F(c->origin_x, c->origin_y, c->origin_z), d};
-    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, ZERO_VECTOR(), null_material};
+    vector d = V3(rx, ry, rz);
+    ray r = {V3(c->origin_x, c->origin_y, c->origin_z), d};
+    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, {0}, null_material};
 }
 
 
@@ -269,7 +269,7 @@ void _startRenderThread(thread_context* c) {
     }
 }
 
-render_context* createrender_context() {
+render_context* createRenderContext() {
     render_context* rc = aligned_malloc(64, sizeof(render_context));
     rc->ll_planes = llCreate();
     rc->ll_spheres = llCreate();

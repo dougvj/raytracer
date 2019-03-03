@@ -12,8 +12,8 @@ typedef float v4sf __attribute__((vector_size(16)));
 #define FLOAT_T_MAX FLT_MAX
 #else
 typedef double v4df __attribute__((vector_size(32)));
-#define float_t double 
-#define vector v4df 
+#define float_t double
+#define vector v4df
 #define FLOAT_T_MAX DBL_MAX
 #endif
 
@@ -48,9 +48,8 @@ static inline void* aligned_malloc(int align, size_t size) {
 #define Z(v) v[2]
 #define W(v) v[3]
 #define V4(x, y, z, w) ((vector){x, y, z, w})
-#define SCALAR(x) (vector){x, x, x, x}
-#define VZERO() (vector){0.0}
-
+//TODO AVC or __mm_ or something
+#define IS_VZERO(v) (v[0] == 0 && v[1] == 0 && v[2] == 0 && v[3] == 0)
 static inline void print_vector(vector v) {
     fprintf(stderr, "{%lf, %lf, %lf, %lf}\n", v[0], v[1], v[2], v[3]);
 }
@@ -76,19 +75,14 @@ static inline float_t length(vector a) {
 
 static inline vector normalize(vector a) {
     float_t l = length(a);
-    return a / SCALAR(l);
+    return a / l;
 }
 
 static inline vector reflect(vector v, vector n) {
     float_t d = dot(v, n);
-    return (v - (SCALAR(d * 2.0) * n));
+    return (v - (d * 2.0 * n));
 }
 
-#define isZero(v) (v == (vector){0.0,0.0,0.0,0.0})
-
-/*static inline int isZero(vector v) {
-    return (v == {0,0,0,0});
-}*/
 
 typedef struct {
     float_t ax, az;
