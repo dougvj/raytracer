@@ -25,11 +25,11 @@ int main(int argc, char** argv) {
     int h = atoi(argv[2]);
     render_context* rc = createRenderContext();
     addSphere(rc,
-            createSphere(V3(2000.0, 10000.0, -20000.0), 100.0f,
+            createSphere(V3(-20000.0, 100000.0, -10000.0), 100.0f,
                 (material) {
                     V3(0.0, 0.0, 0.0),
                     V3(0.0, 0.0, 0.0),
-                    V4(1.0f, 1.0f, 1.0f, 200000000.0),
+                    V4(1.0f, 1.0f, 1.0f, 5000000000.0),
                 }
             )
     );
@@ -73,13 +73,13 @@ int main(int argc, char** argv) {
             createPlane(V3(0.0, -6.0, 0.0),
                         V3(0.0, 1.0, 0.0),
                 (material) {
-                    V3(0.25, 0.25, 0.25),
-                    V3(0.75, 1.0, 1.0),
+                    V3(0.05, 0.05, 0.05),
+                    V3(0.9, 0.9, 0.9),
                     V4(0.0, 0.0, 0.0, 0.0),
                 },
                 (material) {
-                    V3(0.75, 0.75, 0.75),
-                    V3(0.24, 0.35, 0.35),
+                    V3(0.25, 0.25, 0.25),
+                    V3(0.35, 0.35, 0.35),
                     V4(0.0, 0.0, 0.0, 0.0f),
                 }
             )
@@ -88,9 +88,9 @@ int main(int argc, char** argv) {
         addSphere(rc,
                  createSphere(V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200), frand() * 3 + 1,
                 (material) {
-                    V3(0.8, 0.8, 0.8),
-                    V3(0.4, 0.4, 0.4),
-                    V4(frand() * 0.3, frand() * 0.3, frand() * 0.3, frand() * 60),
+                    V3(0.9, 0.9, 0.9),
+                    V3(0.7 * frand() + 0.1, 0.7 * frand() + 0.1, 0.7 * frand() + 0.1),
+                    V4(frand() * 0.0, frand() * 0.0, frand() * 0.0, frand() * 0),
                 })
         );
     }

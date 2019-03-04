@@ -49,7 +49,6 @@ struct render_context_t {
     //origin
     double origin_x, origin_y, origin_z;
     //rays
-    ray_color_pair* ray_color_pairs;
     long num_rays;
     //output buffer
     color* output;
@@ -151,27 +150,39 @@ static const material null_material = {
     {0},
 };
 
-void _generateOriginRay(render_context* c, int x, int y) {
+color convertFloatToColor(vector cor) {
+    vector c = cor;
+    color co;
+    //Convert to Linear space
+    for (int i = 0; i < 4; i++)
+        if (c[i] > 1.0)
+            c[i] = 1.0;
+    /*for (int i = 0; i < 4; i++)
+        c[i] = pow(c[i], 2.2);*/
+    co.r = X(c) * 255;
+    co.g = Y(c) * 255;
+    co.b = Z(c) * 255;
+    return co;
+}
+
+
+
+ray_color_pair _generateOriginRay(render_context* c, int x, int y) {
     float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
     float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
     float_t rz = 1.0f / tan(c->fov / 2.0f);
     vector d = V3(rx, ry, rz);
     ray r = {V3(c->origin_x, c->origin_y, c->origin_z), d};
-    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, {0}, null_material};
+    return (ray_color_pair){r, {0}, null_material};
 }
 
 //Here is where all the magic happens
 void _traceRay(render_context* c, int x, int y, int max_bounces) {
     //Generate the origin ray
-    _generateOriginRay(c, x, y);
+    ray_color_pair p = _generateOriginRay(c, x, y);
     //fprintf(stderr, "%ix%i\n", x, y);
-    long pixel = x + y * c->x;
     //Grab the ray and color that we are currently dealing with
-    ray_color_pair* p = &(c->ray_color_pairs[pixel]);
     for (int n = 0; n < max_bounces; n++) {
-        //If we have a 0 vector return
-        if (IS_VZERO(p->r.d))
-            return;
         //Create a new intersection object initialized to no hit that will
         //hold the closest intersection
         intersection closest = noHit();
@@ -183,21 +194,21 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
         int i;
         //Go through each sphere
         for (i = 0; i < c->num_spheres; i++, count++) {
-            test = intersectSphere(c->spheres[i], p->r);
+            test = intersectSphere(c->spheres[i], p.r);
             if (isHit(test))
-                compareClosest(p->r, &distance, &closest, &test);
+                compareClosest(p.r, &distance, &closest, &test);
         }
         //Go trhough each plane
         for (i = 0; i < c->num_planes; i++, count++) {
-            test = intersectPlane(c->planes[i], p->r);
+            test = intersectPlane(c->planes[i], p.r);
             if (isHit(test))
-               compareClosest(p->r, &distance, &closest, &test);
+               compareClosest(p.r, &distance, &closest, &test);
         }
         //Go through each triangle
         for (i = 0; i < c->num_triangles; i++, count++) {
-            test = intersectTriangle(c->triangles[i], p->r);
+            test = intersectTriangle(c->triangles[i], p.r);
             if (isHit(test))
-               compareClosest(p->r, &distance, &closest, &test);
+               compareClosest(p.r, &distance, &closest, &test);
         }
         //Now if our closest object is a hit, then we know we intersected something
         if (isHit(closest)) {
@@ -207,35 +218,22 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
                 for (i = 0; i < c->num_spheres; i++, count++)
                     diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
             vector emission_color = closest.m->c_emissions;
-            p->c = (diffuse_color + emission_color) * p->m.c_reflect + p->c;
-            p->m.c_reflect *= closest.m->c_reflect;
-            p->m.c_diffuse = closest.m->c_diffuse;
-            p->m.c_emissions = closest.m->c_emissions;
+            p.c = (diffuse_color + emission_color) * p.m.c_reflect + p.c;
+            p.m.c_reflect *= closest.m->c_reflect;
+            p.m.c_diffuse = closest.m->c_diffuse;
+            p.m.c_emissions = closest.m->c_emissions;
             //This is our next ray
-            p->r = (ray){closest.p, reflect(p->r.d, closest.n)};
+            p.r = (ray){closest.p, reflect(p.r.d, closest.n)};
         }
         else {
-            p->r = (ray){{0}, {0}};
+            p.r = (ray){{0}, {0}};
+            break;
         }
     }
+    //Output the pixel into the buffer
+    long pixel = x + y * c->x;
+    c->output[pixel] = convertFloatToColor(p.c);
 }
-
-color convertFloatToColor(vector cor) {
-    vector c = cor;
-    color co;
-    //TODO I think we need color space adjustment here
-    if (X(c) > 1.0f)
-        X(c) = 1.0f;
-    if (Y(c) > 1.0f)
-        Y(c) = 1.0f;
-    if (Z(c) > 1.0f)
-        Z(c) = 1.0f;
-    co.r = X(c) * 255;
-    co.g = Y(c) * 255;
-    co.b = Z(c) * 255;
-    return co;
-}
-
 
 
 #define NO_MORE_BLOCKS -1
@@ -284,23 +282,30 @@ render_context* createRenderContext() {
     rc->ll_planes = llCreate();
     rc->ll_spheres = llCreate();
     rc->ll_triangles = llCreate();
-    rc->ray_color_pairs = NULL;
     rc->fov = FOV_RADS;
     pthread_mutex_init(&rc->mutex, NULL);
     return rc;
 }
 
 
+void adjustMaterialGamma(material* m) {
+    for (int i = 0; i < 3; i++)
+        m->c_emissions[i] = pow(m->c_emissions[i], .45454545);
+}
 
 void addSphere(render_context* rc, sphere* s) {
+    //adjustMaterialGamma(&(s->m));
     llPushBack(rc->ll_spheres, s);
 }
 
 void addPlane(render_context* rc, plane* p) {
+    //adjustMaterialGamma(&(p->m1));
+    //adjustMaterialGamma(&(p->m2));
     llPushBack(rc->ll_planes, p);
 }
 
 void addTriangle(render_context* rc, triangle* t) {
+    //adjustMaterialGamma(&(t->m));
     llPushBack(rc->ll_triangles, t);
 }
 
@@ -317,7 +322,6 @@ void renderScene(render_context* rc, render_parameters* params) {
     int x = params->x;
     int y = params->y;
     //Generate arrays
-    rc->ray_color_pairs = aligned_malloc(64, sizeof(ray_color_pair) * (x * y));
     rc->planes = (plane**)llCreateArray(rc->ll_planes);
     rc->num_planes = llGetCount(rc->ll_planes);
     rc->spheres = (sphere**)llCreateArray(rc->ll_spheres);
@@ -370,12 +374,8 @@ void renderScene(render_context* rc, render_parameters* params) {
     for (int i = 0; i < params->num_threads; i++) {
          pthread_join(threads[i], NULL);
     }
-    for (int i = 0; i < x; i++)
-        for (int j = 0; j < y; j++)
-            rc->output[j * x + i] = convertFloatToColor(rc->ray_color_pairs[j * x + i].c);
     //render cleanup
     free(rc->planes);
     free(rc->spheres);
     free(rc->triangles);
-    free(rc->ray_color_pairs);
 }

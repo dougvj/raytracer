@@ -1,1 +1,1 @@
-time ./raytrace 800 600 80 3 10 1
+time ./raytrace 320 240 24 3 10 1
