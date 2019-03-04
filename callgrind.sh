@@ -1,1 +1,1 @@
-valgrind --tool=callgrind ./raytrace 1920 1080 24 3 10
+valgrind --tool=callgrind ./raytrace 800 600 24 3 10

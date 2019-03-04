@@ -1,4 +1,4 @@
-
+CLANG=1
 WARNINGS= -Wall -Werror -Wfatal-errors
 CWARNINGS=
 INCLUDE=
@@ -17,7 +17,7 @@ EXECUTABLE=raytrace
 
 #compilers
 
-CC=gcc 
+CC=gcc
 ifdef PHI
 CC=icc 
 endif
@@ -66,13 +66,13 @@ set_test:
 ifdef DEBUG
 CFLAGS+= -g -Wno-psabi -Wno-maybe-uninitialized
 else 
-CFLAGS+= -O3 -march=native -mtune=native -ffast-math -Wno-psabi -Wno-maybe-uninitialize -ftree-vectorize -fopt-info-vec-missed -fomit-frame-pointer -Winline -funroll-loops
+CFLAGS+= -g -O3 -march=native -mtune=native -ffast-math
 endif
 ifdef PHI
 CFLAGS = -O3 -mmic -mkl 
 endif 
 ifdef CLANG
-CC=clang -Wno-unknown-warning-option 
+CC=clang 
 endif
 
 Test: set_test $(OBJECTS) unit-test.o test.o
