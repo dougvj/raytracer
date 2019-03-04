@@ -11,12 +11,13 @@ float frand() {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 6) {
-        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_bounces> <rays_per_pixel\n");
+    if (argc < 7) {
+        fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_bounces> <rays_per_pixel> <num_frames>\n");
         return 1;
     }
     srand(100);
     //srand(time(NULL));
+    int num_frames = atoi(argv[6]);
     int rays_per_pixel = atoi(argv[5]);
     int max_bounces = atoi(argv[4]);
     int num_threads = atoi(argv[3]);
@@ -107,12 +108,13 @@ int main(int argc, char** argv) {
         //origin_z and frame filled in loop
 
     };
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < num_frames; i++) {
         params.origin_z = -10 + (i/10.0);
     	fprintf(stderr, "Generating frame %d\n", i);
     	renderScene(rc, &params);
         char filename[256];
         sprintf(filename, "render_output/%d.bmp", i);
+        printf("Dumping frame to %s...\n", filename);
         generateBmp(filename, output_buffer, w, h);
     }
     return 0;

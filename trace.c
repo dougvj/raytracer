@@ -5,7 +5,7 @@
 #include <string.h>
 #include "libdatastruct/linkedlist.h"
 
-
+#define THREAD_BLOCK_SIZE 32 //square pixels
 #define FOV_RADS 1.5708
 typedef struct {
     vector p;
@@ -55,7 +55,8 @@ struct render_context_t {
     color* output;
     pthread_mutex_t mutex;
     long current_block;
-    long block_size;
+    int block_size;
+    long block_stride;
     long total_blocks;
 } render_context_t;
 
@@ -144,8 +145,27 @@ void compareClosest(ray r, float_t* distance, intersection* closest, intersectio
     }
 }
 
+static const material null_material = {
+     V4(1.0, 1.0, 1.0, 1.0),
+    {0},
+    {0},
+};
+
+void _generateOriginRay(render_context* c, int x, int y) {
+    float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
+    float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
+    float_t rz = 1.0f / tan(c->fov / 2.0f);
+    vector d = V3(rx, ry, rz);
+    ray r = {V3(c->origin_x, c->origin_y, c->origin_z), d};
+    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, {0}, null_material};
+}
+
 //Here is where all the magic happens
-void _traceRay(render_context* c, long pixel, int max_bounces) {
+void _traceRay(render_context* c, int x, int y, int max_bounces) {
+    //Generate the origin ray
+    _generateOriginRay(c, x, y);
+    //fprintf(stderr, "%ix%i\n", x, y);
+    long pixel = x + y * c->x;
     //Grab the ray and color that we are currently dealing with
     ray_color_pair* p = &(c->ray_color_pairs[pixel]);
     for (int n = 0; n < max_bounces; n++) {
@@ -216,20 +236,6 @@ color convertFloatToColor(vector cor) {
     return co;
 }
 
-static const material null_material = {
-     V4(1.0, 1.0, 1.0, 1.0),
-    {0},
-    {0},
-};
-
-void _generateOriginRay(render_context* c, int x, int y) {
-    float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
-    float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
-    float_t rz = 1.0f / tan(c->fov / 2.0f);
-    vector d = V3(rx, ry, rz);
-    ray r = {V3(c->origin_x, c->origin_y, c->origin_z), d};
-    c->ray_color_pairs[y * c->x + x] = (ray_color_pair){r, {0}, null_material};
-}
 
 
 #define NO_MORE_BLOCKS -1
@@ -252,15 +258,25 @@ void declareBlockFinished(render_context* rc, long block)
 void _startRenderThread(thread_context* c) {
     long block = getNextBlock(c->rc);
     while (block != NO_MORE_BLOCKS) {
-        long start = c->rc->block_size * block;
-        long end = c->rc->block_size * (block + 1);
-        for (long pixel = start; pixel < end; pixel++) {
-            _traceRay(c->rc, pixel, c->rc->max_bounces);
-            c->count_complete++;
+        //printf("Thread %i picking up block %li\n", c->thread_num, block);
+        const long start_x = (block % c->rc->block_stride) * c->rc->block_size;
+        const long start_y = (block / c->rc->block_stride) * c->rc->block_size;
+        int end_x = start_x + c->rc->block_size;
+        int end_y = start_y + c->rc->block_size;
+        if (end_x > c->rc->x)
+            end_x = c->rc->x;
+        if (end_y > c->rc->y)
+            end_y = c->rc->y;
+        for (int x = start_x; x < end_x; x++) {
+            for (int y = start_y; y < end_y; y++) {
+                _traceRay(c->rc, x, y, c->rc->max_bounces);
+                c->count_complete++;
+             }
         }
         declareBlockFinished(c->rc, block);
         block = getNextBlock(c->rc);
     }
+    //printf("Thread %i terminated, no more blocks\n", c->thread_num);
 }
 
 render_context* createRenderContext() {
@@ -288,24 +304,6 @@ void addTriangle(render_context* rc, triangle* t) {
     llPushBack(rc->ll_triangles, t);
 }
 
-typedef struct {
-     render_context* rc;
-     int start_x;
-     int end_x;
-     int start_y;
-     int end_y;
-     long count;
-} _originRayParams;
-
-void _generateOriginRayThread(_originRayParams* params) {
-    for (int x = params->start_x; x < params->end_x; x++) {
-        for (int y = params->start_y; y < params->end_y; y++) {
-            _generateOriginRay(params->rc, x, y);
-            params->count++;
-        }
-    }
-}
-
 void renderScene(render_context* rc, render_parameters* params) {
     rc->current_block = 0;
     rc->origin_x = params->origin_x;
@@ -314,9 +312,7 @@ void renderScene(render_context* rc, render_parameters* params) {
     rc->x = params->x;
     rc->y = params->y;
     rc->num_threads = params->num_threads;
-    rc->block_size = (rc->x * rc->y) / (params->num_threads * 10);
     rc->max_bounces = params->max_bounces;
-    rc->total_blocks = params->num_threads * 10;
     rc->cur_itr = 0;
     int x = params->x;
     int y = params->y;
@@ -330,46 +326,10 @@ void renderScene(render_context* rc, render_parameters* params) {
     rc->num_triangles = llGetCount(rc->ll_spheres);
     rc->num_rays = x * y;
     rc->output = (color*) params->output_buffer;
-    printf("Generating origin rays\n");
-    int num_blocks = params->num_threads * params->num_threads;
-    _originRayParams ray_params[num_blocks];
-
-    int block_size_y = (y / params->num_threads) + 1;
-    int block_size_x = (x / params->num_threads) + 1;
-    for (int i = 0; i < params->num_threads; i++) {
-        for (int j = 0; j < params->num_threads; j++) {
-             long o = (i * params->num_threads + j);
-             ray_params[o].rc = rc;
-             ray_params[o].start_x = j * block_size_x;
-             ray_params[o].end_x = (j + 1) * block_size_x;
-             ray_params[o].start_y = i * block_size_y;
-             ray_params[o].end_y = (i + 1) * block_size_y;
-             if (ray_params[o].end_y > y)
-                 ray_params[o].end_y = y;
-             if (ray_params[o].end_x > x)
-                 ray_params[o].end_x = x;
-             ray_params[o].count = 0;
-        }
-    }
-    pthread_t threads[num_blocks];
-    for (int i = 0; i < num_blocks; i++) {
-        pthread_create(&(threads[i]), NULL, (void* (*)(void*)) _generateOriginRayThread, (void*)&ray_params[i]);
-    }
-    long count = 0;
-    long size = x * y;
-    while(count < size) {
-        count = 0;
-        for (int i = 0; i < num_blocks; i++) {
-             count += ray_params[i].count;
-        }
-        double percentage = count/(double)size;
-        fprintf(stderr, "%lf%% Origin Rays Complete\n", percentage * 100);
-        sleep(1);
-    }
-    for (int i = 0; i < num_blocks; i++) {
-         pthread_join(threads[i], NULL);
-    }
-
+    rc->block_size = THREAD_BLOCK_SIZE;
+    rc->block_stride = x / rc->block_size + !!(x % rc->block_size);
+    rc->total_blocks = ((y / rc->block_size) + !!(y % rc->block_size)) * rc->block_stride;
+    pthread_t threads[params->num_threads];
     thread_context contexts[params->num_threads];
     for (int i = 0; i < params->num_threads; i++) {
         thread_context* c = &contexts[i];
@@ -402,8 +362,10 @@ void renderScene(render_context* rc, render_parameters* params) {
 	         long secs = (long)estimated_secs % 60;
              fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li pixels per sec\n", percentage * 100, hours, mins, secs, complete_difference);
         }
-        else
+        else {
             fprintf(stderr, "%lf%% Complete\n", percentage * 100);
+            break;
+        }
     }
     for (int i = 0; i < params->num_threads; i++) {
          pthread_join(threads[i], NULL);
