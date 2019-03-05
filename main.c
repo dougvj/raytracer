@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Usage:\n\traytracer <width> <height> <num_threads> <max_bounces> <rays_per_pixel> <num_frames>\n");
         return 1;
     }
-    srand(100);
-    //srand(time(NULL));
+    //srand(100);
+    srand(time(NULL));
     int num_frames = atoi(argv[6]);
     int rays_per_pixel = atoi(argv[5]);
     int max_bounces = atoi(argv[4]);
@@ -85,11 +85,12 @@ int main(int argc, char** argv) {
             )
     );
    for (int i = 0; i < 3000; i++) {
+        vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
         addSphere(rc,
-                 createSphere(V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200), frand() * 3 + 1,
+                createSphere(V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200), frand() * 3 + 1,
                 (material) {
-                    V3(0.9, 0.9, 0.9),
-                    V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1),
+                    .c_reflect = color,
+                    .c_diffuse = color,
                     V4(0.0, 0.0, 0.0, 0.0),
                 })
         );
