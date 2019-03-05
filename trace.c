@@ -153,12 +153,12 @@ static const material null_material = {
 color convertFloatToColor(vector cor) {
     vector c = cor;
     color co;
-    //Convert to Linear space
+    //Convert to Gamma space
     for (int i = 0; i < 4; i++)
         if (c[i] > 1.0)
             c[i] = 1.0;
-    /*for (int i = 0; i < 4; i++)
-        c[i] = pow(c[i], 2.2);*/
+    for (int i = 0; i < 4; i++)
+        c[i] = pow(c[i], 0.45454545);
     co.r = X(c) * 255;
     co.g = Y(c) * 255;
     co.b = Z(c) * 255;
@@ -289,23 +289,24 @@ render_context* createRenderContext() {
 
 
 void adjustMaterialGamma(material* m) {
+    //Decode gamma to linera
     for (int i = 0; i < 3; i++)
-        m->c_emissions[i] = pow(m->c_emissions[i], .45454545);
+        m->c_emissions[i] = pow(m->c_emissions[i], 2.2);
 }
 
 void addSphere(render_context* rc, sphere* s) {
-    //adjustMaterialGamma(&(s->m));
+    adjustMaterialGamma(&(s->m));
     llPushBack(rc->ll_spheres, s);
 }
 
 void addPlane(render_context* rc, plane* p) {
-    //adjustMaterialGamma(&(p->m1));
-    //adjustMaterialGamma(&(p->m2));
+    adjustMaterialGamma(&(p->m1));
+    adjustMaterialGamma(&(p->m2));
     llPushBack(rc->ll_planes, p);
 }
 
 void addTriangle(render_context* rc, triangle* t) {
-    //adjustMaterialGamma(&(t->m));
+    adjustMaterialGamma(&(t->m));
     llPushBack(rc->ll_triangles, t);
 }
 
