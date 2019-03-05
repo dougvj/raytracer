@@ -24,15 +24,24 @@ int main(int argc, char** argv) {
     int w = atoi(argv[1]);
     int h = atoi(argv[2]);
     render_context* rc = createRenderContext();
-    addSphere(rc,
-            createSphere(V3(-20000.0, 100000.0, -10000.0), 100.0f,
+    /*addSphere(rc,
+            createSphere(V3(0, 100, 500), 1.0f,
+                (material) {
+                    V3(0.0, 0.0, 0.0),
+                    V3(0.0, 0.0, 0.0),
+                    V4(1.0f, 1.0f, 1.0f, 100000.0),
+                }
+            )
+    );*/
+    /*addSphere(rc,
+            createSphere(V3(-20000.0, 100000.0, -20000.0), 100.0f,
                 (material) {
                     V3(0.0, 0.0, 0.0),
                     V3(0.0, 0.0, 0.0),
                     V4(1.0f, 1.0f, 1.0f, 5000000000.0),
                 }
             )
-    );
+    );*/
     addSphere(rc,
             createSphere(V3(0.0, 4.0, 53.0), 2.3,
                 (material) {
@@ -47,7 +56,7 @@ int main(int argc, char** argv) {
                 (material) {
                     V3(0.6, 0.6, 0.6),
                     V3(0.0, 0.0, 0.0),
-                    V4(0.0, 0.0, 1.0, 60),
+                    V4(0.0, 0.0, 1.0, 100),
                 }
             )
     );
@@ -56,7 +65,7 @@ int main(int argc, char** argv) {
                 (material) {
                     V3(0.6, 0.6, 0.6),
                     V3(0.0, 0.0, 0.0),
-                    V4(0.0, 1.0, 0.0, 60),
+                    V4(0.0, 1.0, 0.0, 100),
                 }
             )
     );
@@ -65,7 +74,7 @@ int main(int argc, char** argv) {
                 (material) {
                     V3(0.6, 0.6, 0.6),
                     V3(0.0, 0.0, 0.0),
-                    V4(1.0, 0.0, 0.0, 60.0),
+                    V4(1.0, 0.0, 0.0, 100.0),
                 }
             )
     );
