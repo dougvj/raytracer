@@ -115,18 +115,23 @@ vector getBackground(ray r) {
     return V4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-vector calculateDiffuse(vector diffuse_color, vector emission_color, vector light_pos, vector surface_pos, vector normal) {
+vector calculateDiffuse(vector diffuse_color, 
+                        vector emission_color, 
+                        vector light_pos, 
+                        vector surface_pos, 
+                        vector normal) {
     //If the diffuse color is 0 that means we don't actually diffuse light
     if (IS_VZERO(diffuse_color) || W(emission_color) == 1)
         return (vector){0};
-    vector light = (surface_pos - light_pos);
+    vector light = (light_pos - surface_pos);
     float_t distance = length(light);
     float_t square = 1 / (distance * distance);
     if (square * W(emission_color) < 0.01)
         return (vector){0};
     float_t incidence = dot(normalize(light), normalize(normal));
     if (incidence < 0)
-        incidence *= -1;
+        return (vector){0};
+//        incidence *= -1;
     vector cor = emission_color;
     X(cor) *= W(cor);
     Y(cor) *= W(cor);
