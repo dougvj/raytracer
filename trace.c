@@ -155,13 +155,13 @@ static const material null_material = {
     {0},
 };
 
-color convertFloatToColor(vector cor) {
+color toneMapFloatToColor(vector cor) {
     vector c = cor;
     color co;
-    //Convert to Gamma space
+    //Tone map 
     for (int i = 0; i < 4; i++)
-        if (c[i] > 1.0)
-            c[i] = 1.0;
+     	c[i] = c[i] / (c[i] + 1);
+    //Compress gamma
     for (int i = 0; i < 4; i++)
         c[i] = pow(c[i], 0.45454545);
     co.r = X(c) * 255;
@@ -237,7 +237,7 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
     }
     //Output the pixel into the buffer
     long pixel = x + y * c->x;
-    c->output[pixel] = convertFloatToColor(p.c);
+    c->output[pixel] = toneMapFloatToColor(p.c);
 }
 
 
