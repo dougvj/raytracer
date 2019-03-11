@@ -1,3 +1,0 @@
-[submodule "libdatastruct"]
-	path = libdatastruct
-	url = ssh://bn-i.net/git/libdatastruct

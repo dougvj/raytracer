@@ -2,7 +2,6 @@
 #define TRACE_H
 #include "vmath.h"
 #include "geometric_primitives.h"
-#include "libdatastruct/linkedlist.h"
 
 
 typedef struct __attribute__((aligned(64))) {

@@ -4,7 +4,7 @@ CWARNINGS=
 INCLUDE=
 CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) 
 
-LDFLAGS= -lpthread -lm -L./libdatastruct -ldatastruct
+LDFLAGS= -lpthread -lm 
 
 ifdef MSYSTEM
 LDFLAGS+= -mwindows
