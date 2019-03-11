@@ -4,7 +4,7 @@ CWARNINGS=
 INCLUDE=
 CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) 
 
-LDFLAGS= -lpthread -lm 
+LDFLAGS= -lpthread -lm -lSDL2 -lGL
 
 ifdef MSYSTEM
 LDFLAGS+= -mwindows
@@ -24,7 +24,9 @@ endif
 
 
 
-SRC=$(wildcard *.c)
+#SRC=$(wildcard *.c) $(wildcard video/*.c)
+SRC=$(wildcard *.c) $(wildcard video/sdl_window.c)
+OBJECTS = $(SRC:%.c=%.o)
 OBJECTS = $(SRC:%.c=%.o)
 
 

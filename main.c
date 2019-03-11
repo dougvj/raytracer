@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "geometric_primitives.h"
-//#include "window.h"
+#include "window.h"
 #include "bmp.h"
 
 typedef struct {
@@ -233,6 +233,10 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Output resolution not set with --resolution\n");
         exit(1);
     }
+    if (params.win_w == 0 || params.win_h == 0) {
+        params.win_w = params.w;
+        params.win_h = params.h;
+    }
     if (!params.output_dir) {
         params.output_dir = "render_output";
     }
@@ -289,10 +293,10 @@ int main(int argc, char** argv) {
         spheres[i] = static_spheres[i];
     }
     //Generate the random spheres
-    for (int i = sizeof(static_spheres); i < num_spheres; i++) {
+    for (int i = num_static_spheres; i < num_spheres; i++) {
         vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
         spheres[i] = (sphere) {
-            .p = V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200),
+            .p = V3(frand() * 100. - 50., frand() * 20 + 9.4,  frand() * 100 - 20 + 25),
             .r = frand() * 3 + 1,
             .m = (material) {
                 .c_reflect = color,
@@ -320,8 +324,13 @@ int main(int argc, char** argv) {
     //Allocate the output frame buffer
     char* output_buffer = aligned_malloc(64, 
                                          sizeof(char[3]) * params.w * params.h);
+    window* w = NULL;
+    if (params.window_enabled) {
+        w = initWindow(params.win_w, params.win_h);
+    }
     //Fill our render parameters that are the same each frame
     render_parameters render_params = (render_parameters){
+        .w = w,
         .x = params.w,
         .y = params.h,
         .num_threads = params.num_threads,
@@ -338,12 +347,16 @@ int main(int argc, char** argv) {
         .num_spheres = num_spheres
         //origin_z and frame filled in loop
     };
-    //Render each rame
+    //Render each frame
     for (int i = 0; i < params.num_frames; i++) {
+        memset(output_buffer, 0, 3 * params.w * params.h);
         //Z is different each frame
         render_params.origin_z = -10 + (i/10.0);
     	fprintf(stderr, "Generating frame %d\n", i);
-    	renderScene(rc, &render_params);
+    	int completed = renderScene(rc, &render_params);
+        if (!completed) {
+            break;
+        }
         char filename[256];
         snprintf(filename, 256, "%s/%d.bmp", params.output_dir, i);
         printf("Dumping frame to %s...\n", filename);

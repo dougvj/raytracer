@@ -2,7 +2,7 @@
 #define TRACE_H
 #include "vmath.h"
 #include "geometric_primitives.h"
-
+#include "window.h"
 
 typedef struct __attribute__((aligned(64))) {
     vector p; //position
@@ -38,8 +38,9 @@ typedef struct {
     int num_triangles;
     sphere* spheres;
     int num_spheres;
+    window* w;
 } render_parameters;
 
-void renderScene(render_context* rc, render_parameters* params);
+int renderScene(render_context* rc, render_parameters* params);
 
 #endif

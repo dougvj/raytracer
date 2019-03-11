@@ -11,7 +11,12 @@ typedef struct {
 } rect;
 
 window* initWindow(int x, int y);
-void drawBuffer(window* w, const char* buf, int sx, int sy, rect view_port);
-void drawRect(window* w, rect r);
+int windowSetDrawingThread(window* w);
+void windowFreeDrawingThread(window* w);
+void windowDrawBuffer(window* w, const char* buf, int sx, int sy, rect r);
+void windowDrawRect(window* w, rect r);
+void windowUpdate(window* w);
+void freeWindow(window* w);
+int windowCheckQuit(window* w);
 
 #endif

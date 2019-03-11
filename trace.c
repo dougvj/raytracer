@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <string.h>
 
-#define THREAD_BLOCK_SIZE 32 //square pixels
+#define THREAD_BLOCK_SIZE 128 //square pixels
 #define FOV_RADS 1.5708
 #define GAMMA 2.2
 typedef struct {
@@ -17,7 +17,9 @@ typedef struct {
     render_context* rc;
     int thread_num;
     int count_complete;
-    int num_traces;
+    long num_traces;
+    long num_intersections;
+    int block;
 } thread_context;
 
 typedef struct {
@@ -34,6 +36,9 @@ struct render_context_t {
     int rays_per_pixel;
     int cur_itr;
     float_t fov;
+
+    //Rendering flag
+    int rendering;
 
     //Primitives
     plane* planes;
@@ -182,13 +187,20 @@ ray_color_pair _generateOriginRay(render_context* c, int x, int y) {
     return (ray_color_pair){r, {0}, null_material};
 }
 
+typedef struct {
+    int num_traces;
+    int num_intersections;
+} trace_stats;
+
 //Here is where all the magic happens
-void _traceRay(render_context* c, int x, int y, int max_bounces) {
+trace_stats _traceRay(render_context* c, int x, int y, int max_bounces) {
+    trace_stats tc = {0, 0};
     //Generate the origin ray
     ray_color_pair p = _generateOriginRay(c, x, y);
     //fprintf(stderr, "%ix%i\n", x, y);
     //Grab the ray and color that we are currently dealing with
     for (int n = 0; n < max_bounces; n++) {
+        tc.num_traces++;
         //Create a new intersection object initialized to no hit that will
         //hold the closest intersection
         intersection closest = noHit();
@@ -200,18 +212,22 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
         int i;
         //Go through each sphere
         for (i = 0; i < c->num_spheres; i++, count++) {
+            tc.num_intersections++;
             test = intersectSphere(&c->spheres[i], p.r);
             if (isHit(test))
                 compareClosest(p.r, &distance, &closest, &test);
         }
         //Go trhough each plane
         for (i = 0; i < c->num_planes; i++, count++) {
+            tc.num_intersections++;
             test = intersectPlane(&c->planes[i], p.r);
             if (isHit(test))
                compareClosest(p.r, &distance, &closest, &test);
         }
         //Go through each triangle
         for (i = 0; i < c->num_triangles; i++, count++) {
+            tc.num_intersections++;
+            test = intersectPlane(&c->planes[i], p.r);
             printf("nt: %i", c->num_triangles);
             test = intersectTriangle(&c->triangles[i], p.r);
             if (isHit(test))
@@ -248,6 +264,7 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
     //Output the pixel into the buffer
     long pixel = x + y * c->x;
     c->output[pixel] = toneMapFloatToColor(p.c);
+    return tc;
 }
 
 
@@ -256,7 +273,7 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
 long getNextBlock(render_context* rc) {
     pthread_mutex_lock(&rc->mutex);
     long b =  rc->current_block++;
-    if (b >= rc->total_blocks ) {
+    if (b >= rc->total_blocks || !rc->rendering) {
         b = NO_MORE_BLOCKS;
     }
     pthread_mutex_unlock(&rc->mutex);
@@ -267,9 +284,12 @@ void declareBlockFinished(render_context* rc, long block) {
 
 }
 
+
+
 void _startRenderThread(thread_context* c) {
     long block = getNextBlock(c->rc);
     while (block != NO_MORE_BLOCKS) {
+        c->block = block;
         //printf("Thread %i picking up block %li\n", c->thread_num, block);
         const long start_x = (block % c->rc->block_stride) * c->rc->block_size;
         const long start_y = (block / c->rc->block_stride) * c->rc->block_size;
@@ -279,9 +299,11 @@ void _startRenderThread(thread_context* c) {
             end_x = c->rc->x;
         if (end_y > c->rc->y)
             end_y = c->rc->y;
-        for (int x = start_x; x < end_x; x++) {
-            for (int y = start_y; y < end_y; y++) {
-                _traceRay(c->rc, x, y, c->rc->max_bounces);
+        for (int y = start_y; y < end_y; y++) {
+            for (int x = start_x; x < end_x; x++) {
+                trace_stats tc = _traceRay(c->rc, x, y, c->rc->max_bounces);
+                c->num_traces += tc.num_traces;
+                c->num_intersections += tc.num_intersections;
                 c->count_complete++;
              }
         }
@@ -318,43 +340,148 @@ static double _getTimestamp() {
 }
 
 typedef struct {
-    thread_context* contexts;
+    render_context* rc;
+    int num_threads;
+    thread_context* thread_contexts;
+    window* w;
+} window_thread_context;
+
+#define MAX_FRAME_RATE 60
+static void _windowThread(window_thread_context* wtc) {
+    double frame_time = 1.0/MAX_FRAME_RATE;
+    double last_frame = 0;
+    long window_frames = 0;
+    double fps_time = _getTimestamp();
+    if (!windowSetDrawingThread(wtc->w)) {
+        fprintf(stderr, "Cannot initialize drawing thread\n");
+        return;
+    }
+    while(wtc->rc->rendering) {
+        double next_frame = (frame_time - (_getTimestamp() - last_frame)) ;
+        //Wait until next frame should be rendered
+        double error = 0;
+        if (next_frame > 0) {
+            struct timespec t;
+            t.tv_nsec = (next_frame) * 1000000000;
+            t.tv_sec = 0;
+            //Sleep and measure our wakeup time overshoot
+            double s = _getTimestamp();
+            nanosleep(&t, NULL);
+            double e = _getTimestamp();
+            //The eror is subtracted from the next frame time
+            error = (e-s) - next_frame;
+        } 
+        //Current timestamp minus our overshoot
+        last_frame = _getTimestamp() - error;
+        if (last_frame - fps_time > 1) {
+            fprintf(stderr,"FPS: %f, ERR: %f\n", window_frames / (last_frame - fps_time), error);
+            fps_time = last_frame;
+            window_frames = 0;
+        }
+        rect r = {
+            .x = 0,
+            .y = 0,
+            .w = wtc->rc->x,
+            .h = wtc->rc->y
+        };
+        rect rect_list[wtc->num_threads];
+        for (int i = 0; i < wtc->num_threads; i++) {
+            long block = wtc->thread_contexts[i].block;
+            if (block >= 0) {
+                long start_x = (block % wtc->rc->block_stride) 
+                                            * wtc->rc->block_size;
+                long start_y = (block / wtc->rc->block_stride) 
+                                            * wtc->rc->block_size;
+                rect_list[i] = (rect){
+                    .x = start_x,
+                    .y = start_y,
+                    .w = wtc->rc->block_size,
+                    .h = wtc->rc->block_size
+                };
+            }
+        }
+        windowDrawBuffer(wtc->w, (char*)wtc->rc->output, wtc->rc->x, wtc->rc->y, r);
+        for(int i = 0; i < wtc->num_threads; i++) {
+            windowDrawRect(wtc->w, rect_list[i]);
+        }
+        windowUpdate(wtc->w);
+        if (windowCheckQuit(wtc->w)) {
+            wtc->rc->rendering = 0;
+        }
+        window_frames++;
+    }
+    windowFreeDrawingThread(wtc->w);
+} 
+
+typedef struct {
+    render_context* rc;
+    thread_context* thread_contexts;
     int num_threads;
     long total_pixels;
     double start_time;
+    double end_time;
 } stats_context;
 
 
+#define STATS_FREQ 16
 static void _statsThread(stats_context* sc) {
     long total = sc->total_pixels;
-    long last_complete = 0;
     long complete = 0;
+    long num_traces = 0;
+    long last_num_traces = 0;
     do {
-        usleep(62500);
+        usleep(1000000/STATS_FREQ);
         complete = 0;
+        num_traces = 0;
         for (int i = 0; i < sc->num_threads; i++) {
-            complete += sc->contexts[i].count_complete;
+            complete += sc->thread_contexts[i].count_complete;
+            num_traces += sc->thread_contexts[i].num_traces;
         }
-        long pix_per_sec = (complete - last_complete) * 4.0;
+        long traces_per_sec = (num_traces - last_num_traces) * STATS_FREQ;
         double percentage = complete/(double)total;
-        last_complete = complete;
+        last_num_traces = num_traces;
         double total_secs = _getTimestamp() - sc->start_time;
         long msecs = (int)(total_secs * 1000.0) % 1000;
         long mins = total_secs / 60;
         long hours = mins / 60;
         mins %= 60;
         long secs = (long)(total_secs) % 60;
-        long avg_pix_per_sec = complete / total_secs;
+        long avg_traces_per_sec = num_traces / total_secs;
         fprintf(
             stderr, 
-           "%10.6lf%% Complete. Elapsed %02li:%02li:%02li.%03li, cur: %li\t avg: %li pixels per sec       \r", 
-           percentage * 100, hours, mins, secs, msecs, pix_per_sec, avg_pix_per_sec
+           "%10.6lf%% Complete. Elapsed %02li:%02li:%02li.%03li, cur: %10li avg: %10li traces per sec\r", 
+           percentage * 100, hours, mins, secs, msecs, traces_per_sec, avg_traces_per_sec
         );
-    } while(complete < total);
+    } while(sc->rc->rendering);
+
     fprintf(stderr, "\n");
+    num_traces = 0;
+    long num_intersections = 0;
+    for (int i = 0; i < sc->num_threads; i++) {
+        num_traces += sc->thread_contexts[i].num_traces;
+        num_intersections += sc->thread_contexts[i].num_intersections;
+    }
+    //End time is only set if we completed
+    if (sc->end_time > 0) {
+        //Display elapsed time and traces per sec
+        double total_time = sc->end_time - sc->start_time;
+        fprintf(stderr, 
+                "Completed. Stats:\n"
+                " Total Frame Render Time:        %10.4lfs\n"
+                " Total Frame Traces:             %10.4lfM\n"
+                " Traces Per Sec:                 %10.4lfK\n" 
+                " Total Geometric Intersections:  %10.4lfG\n"
+                " Geometric Intersections per Sec %10.4lfM\n",
+                total_time,
+                num_traces / 1000000.0,
+                (long)(num_traces / total_time) / 1000.0,
+                num_intersections / 1000000000.0,
+               (num_intersections / total_time) / 1000000.0
+        );
+    }
 }
 
-void renderScene(render_context* rc, render_parameters* params) {
+int renderScene(render_context* rc, render_parameters* params) {
     //Record start time
     double start_time = _getTimestamp();
     rc->current_block = 0;
@@ -381,36 +508,63 @@ void renderScene(render_context* rc, render_parameters* params) {
     rc->block_size = THREAD_BLOCK_SIZE;
     rc->block_stride = x / rc->block_size + !!(x % rc->block_size);
     rc->total_blocks = ((y / rc->block_size) + !!(y % rc->block_size)) * rc->block_stride;
-    //Create the worker threads eith their contexts
+    //Create the worker threads eith their thread_contexts
     pthread_t threads[params->num_threads];
-    thread_context contexts[params->num_threads];
+    thread_context thread_contexts[params->num_threads];
+    //Flag that we are rendering
+    rc->rendering = 1;
     for (int i = 0; i < params->num_threads; i++) {
-        thread_context* c = &contexts[i];
+        thread_context* c = &thread_contexts[i];
         c->rc = rc;
         c->thread_num = i;
         c->count_complete = 0;
         c->num_traces = 0;
+        c->num_intersections = 0;
+        c->block = -1;
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
     }
+    //If we have  window parameter then we need to start a window thread
+    pthread_t window_thread;
+    window_thread_context wtc;
+    if(params->w) {
+        wtc = (window_thread_context){
+            .rc = rc,
+            .thread_contexts = thread_contexts,
+            .w = params->w,
+            .num_threads = params->num_threads
+        };
+        pthread_create(&window_thread, NULL, (void *(*)(void*))_windowThread, (void*)&wtc);
+    }
+    
     //Start the thread that displays stats
     pthread_t stats_thread;
     stats_context sc = {
-        .contexts = contexts,
+        .thread_contexts = thread_contexts,
         .num_threads = params->num_threads,
         .total_pixels = x * y,
-        .start_time = start_time
+        .start_time = start_time,
+        .end_time = 0,
+        .rc = rc
     };
     pthread_create(&stats_thread, NULL, (void *(*)(void*))_statsThread, (void*)&sc);
     //Join the worker threads
     for (int i = 0; i < params->num_threads; i++) {
          pthread_join(threads[i], NULL);
     }
-    //Get final time before the stats thread ends
-    double end_time = _getTimestamp();
+    int completed = 1;
+    if (rc->rendering == 0) {
+        completed = 0;
+        fprintf(stderr, "Rendering was interrupted\n");
+    }
+    //Mark the final time for the stats thread
+    sc.end_time = _getTimestamp();
+    //We are no longer rendering
+    rc->rendering = 0;
+    //Join the window thread if we started it
+    if (params->w) {
+       pthread_join(window_thread, NULL); 
+    }
     //Join the stats threads
     pthread_join(stats_thread, NULL);
-    //Display elapsed time
-    fprintf(stderr, 
-            "Complete.\n Total Frame Render Time: %lf\n", 
-            end_time - start_time);
+    return completed;
 }
