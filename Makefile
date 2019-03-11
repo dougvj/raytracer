@@ -64,7 +64,7 @@ set_test:
 
 
 ifdef DEBUG
-CFLAGS+= -g -Wno-psabi -Wno-maybe-uninitialized
+CFLAGS+= -g -ffast-math 
 else 
 CFLAGS+= -g -O3 -march=native -mtune=native -ffast-math
 endif

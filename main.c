@@ -14,6 +14,7 @@ typedef struct {
     int h;
     int num_threads;
     int num_frames;
+    int num_spheres;
     int max_bounces;
     //Path tracing options
     int path_tracing_enabled;
@@ -41,6 +42,7 @@ General Options:\n\
     --max-bounces <num>   The maximum number of ray traced bounces.\n\
                           The default is 8\n\
     --random-seed <num>   The seed for the srand()\n\
+    --num-spheres <num>   The number of spheres to render in the scene\n\
 \n\
 Path Tracing Options:\n\
     --enable_path_tracing Set to enable full monte-carlo path tracing\n\
@@ -135,6 +137,10 @@ static void parse_args(int argc, char** argv) {
                 .name = "random-seed",
                 .has_arg = required_argument
             },
+            { //11
+                .name = "num-spheres",
+                .has_arg = required_argument
+            }
         };
         int i;
         int c = getopt_long(argc, argv, "", options, &i);
@@ -176,7 +182,10 @@ static void parse_args(int argc, char** argv) {
                         break;
                     case 10:
                         params.random_seed = parse_int(optarg);
-
+                        break;
+                    case 11:
+                        params.num_spheres = parse_int(optarg);
+                        break;
                 }
                 break;
             default:
@@ -205,6 +214,7 @@ static void print_parameters() {
     } 
 }
 
+
 int main(int argc, char** argv) {
     //Set default parameter values
     //Most values are 0 by default
@@ -215,6 +225,7 @@ int main(int argc, char** argv) {
     params.max_bounces = 8;
     params.num_frames = 1;
     params.random_seed = -1; //Indicates to use TIME()
+    params.num_spheres = 3000;
     //Parse the arguments
     parse_args(argc, argv);
     //Validate parameters
@@ -232,102 +243,104 @@ int main(int argc, char** argv) {
     else
         srand(time(NULL));
     render_context* rc = createRenderContext();
-    /*addSphere(rc,
-            createSphere(V3(0, 100, 500), 1.0f,
-                (material) {
-                    V3(0.0, 0.0, 0.0),
-                    V3(0.0, 0.0, 0.0),
-                    V4(1.0f, 1.0f, 1.0f, 100000.0),
-                }
-            )
-    );*/
-    /*addSphere(rc,
-            createSphere(V3(-20000.0, 100000.0, -20000.0), 100.0f,
-                (material) {
-                    V3(0.0, 0.0, 0.0),
-                    V3(0.0, 0.0, 0.0),
-                    V4(1.0f, 1.0f, 1.0f, 5000000000.0),
-                }
-            )
-    );*/
-    addSphere(rc,
-            createSphere(V3(0.0, 4.0, 53.0), 2.3,
-                (material) {
-                    V3(1.0, 1.0, 1.0),
-                    V3(0.2, 0.2, 0.2),
-                    V4(0.05f, 0.05f, 0.05f, 0.0f),
-                }
-            )
-    );
-    addSphere(rc,
-            createSphere(V3(0.0, 0.0, 55.2), 1.5,
-                (material) {
-                    V3(0.6, 0.6, 0.6),
-                    V3(0.0, 0.0, 0.0),
-                    V4(0.0, 0.0, 1.0, 100),
-                }
-            )
-    );
-    addSphere(rc,
-            createSphere(V3(-3.0, 0.0, 50.0), 1.5,
-                (material) {
-                    V3(0.6, 0.6, 0.6),
-                    V3(0.0, 0.0, 0.0),
-                    V4(0.0, 1.0, 0.0, 100),
-                }
-            )
-    );
-    addSphere(rc,
-            createSphere(V3(3.0, 0.0, 50.0), 1.5,
-                (material) {
-                    V3(0.6, 0.6, 0.6),
-                    V3(0.0, 0.0, 0.0),
-                    V4(1.0, 0.0, 0.0, 100.0),
-                }
-            )
-    );
-    addPlane(rc,
-            createPlane(V3(0.0, -6.0, 0.0),
-                        V3(0.0, 1.0, 0.0),
-                (material) {
-                    V3(0.1, 0.1, 0.1),
-                    V3(0.28, 0.35, 0.35),
-                    V4(0.0, 0.0, 0.0, 0.0),
-                },
-                (material) {
-                    V3(0.25, 0.25, 0.25),
-                    V3(0.04, 0.05, 0.05),
-                    V4(0.0, 0.0, 0.0, 0.0f),
-                }
-            )
-    );
-   for (int i = 0; i < 3000; i++) {
-        vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
-        addSphere(rc,
-                createSphere(V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200), frand() * 3 + 1,
-                (material) {
-                    .c_reflect = color,
-                    .c_diffuse = color,
-                    V4(0.0, 0.0, 0.0, 0.0),
-                })
-        );
+    const sphere static_spheres[] = {
+        {
+            .p = V3(0.0, 4.0, 53.0),
+            .r = 2.3,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.2, 0.2, 0.2),
+                .c_emit    = V4(0.05, 0.05, 0.05, 0.0),        
+            }
+        },
+        {
+            .p = V3(0.0, 0.0, 55.2),
+            .r = 1.5,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.0, 0.0, 0.0),
+                .c_emit    = V4(0.0, 0.0, 1.0, 100.0f),
+            }
+        },
+        {
+            .p = V3(-3.0, 0.0, 50.0),
+            .r = 1.5,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.0, 0.0, 0.0),
+                .c_emit    = V4(0.0, 1.0, 0.0, 100.0f),
+            }
+        },
+        {
+            .p = V3(3.0, 0.0, 50.0),
+            .r = 1.5,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.0, 0.0, 0.0),
+                .c_emit    = V4(1.0, 0.0, 0.0, 100.0f),
+            }
+        },
+    };
+    const int num_static_spheres = sizeof(static_spheres) / sizeof(sphere);
+    int num_spheres = params.num_spheres + num_static_spheres;
+    sphere* spheres = aligned_malloc(64, sizeof(sphere) * num_spheres);
+    //Copy the static scence
+    for (int i = 0; i < num_static_spheres; i++) {
+        spheres[i] = static_spheres[i];
     }
+    //Generate the random spheres
+    for (int i = sizeof(static_spheres); i < num_spheres; i++) {
+        vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
+        spheres[i] = (sphere) {
+            .p = V3(frand() * 1000. - 500., frand() * 20 + 9.4,  frand() * 1000 - 200),
+            .r = frand() * 3 + 1,
+            .m = (material) {
+                .c_reflect = color,
+                .c_diffuse = color,
+                .c_emit = {0}
+            }
+        };
+    }
+    plane static_planes[] = {
+        {
+            .p = V3(0.0, -6.0, 0.0),
+            .n = normalize(V3(0.0, 1.0, 0.0)),
+            .m1 = { // even pattern material
+                .c_reflect = V3(0.1, 0.1, 0.1),
+                .c_diffuse = V3(0.28, 0.35, 0.35),
+                .c_emit = V4(0.0, 0.0, 0.0, 0.0),
+            },
+            .m2 = { // odd pattern material
+                .c_reflect = V3(0.25, 0.25, 0.25),
+                .c_diffuse = V3(0.04, 0.05, 0.05),
+                .c_emit = V4(0.0, 0.0, 0.0, 0.0f),
+            }
+        }
+    };
     //Allocate the output frame buffer
     char* output_buffer = aligned_malloc(64, 
                                          sizeof(char[3]) * params.w * params.h);
+    //Fill our render parameters that are the same each frame
     render_parameters render_params = (render_parameters){
         .x = params.w,
         .y = params.h,
         .num_threads = params.num_threads,
         .max_bounces = params.max_bounces,
-        .rays_per_pixel = params.samples_per_pixel,
+        .samples_per_pixel = params.samples_per_pixel,
         .origin_x = 0.0,
         .origin_y = 0.0,
-        .output_buffer = output_buffer
+        .output_buffer = output_buffer,
+        .triangles = NULL,
+        .num_triangles = 0,
+        .planes = static_planes,
+        .num_planes = sizeof(static_planes) / sizeof(plane),
+        .spheres = spheres,
+        .num_spheres = num_spheres
         //origin_z and frame filled in loop
-
     };
+    //Render each rame
     for (int i = 0; i < params.num_frames; i++) {
+        //Z is different each frame
         render_params.origin_z = -10 + (i/10.0);
     	fprintf(stderr, "Generating frame %d\n", i);
     	renderScene(rc, &render_params);
@@ -344,5 +357,8 @@ int main(int argc, char** argv) {
         generateBmp(fh, output_buffer, params.w, params.h);
         fclose(fh);
     }
+    deleteRenderContext(rc);
+    free(spheres);
+    free(output_buffer);
     return 0;
 }

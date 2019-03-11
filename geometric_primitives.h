@@ -6,7 +6,7 @@
 typedef struct __attribute((aligned(64)))  {
     vector c_reflect;
     vector c_diffuse;
-    vector c_emissions;
+    vector c_emit;
 } material;
 
 
@@ -32,8 +32,9 @@ typedef struct __attribute__((aligned(64))) {
 } triangle;
 
 
-sphere* createSphere(vector pos, float_t r, material m);
-plane* createPlane(vector pos, vector norm, material m1, material m2);
+static inline void calcTriangleNormal(triangle* t) {
+    t->n = normalize(cross(t->v1 - t->v2, t->v1 - t->v3));
+}
 
 #endif
 

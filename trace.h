@@ -21,23 +21,26 @@ typedef struct render_context_t render_context;
 
 
 render_context* createRenderContext();
-void addSphere(render_context* rc, sphere* s);
-void addPlane(render_context* rc, plane* p);
-void addTriangle(render_context* rc, triangle* t);
-
+void deleteRenderContext(render_context* rc);
 
 typedef struct {
     int x;
     int y;
     int num_threads;
     int max_bounces;
-    int rays_per_pixel;
+    int samples_per_pixel;
     char* output_buffer;
     float origin_x;
     float origin_y;
     float origin_z;
-    int frame;
+    plane* planes;
+    int num_planes;
+    triangle* triangles;
+    int num_triangles;
+    sphere* spheres;
+    int num_spheres;
 } render_parameters;
+
 void renderScene(render_context* rc, render_parameters* params);
 
 #endif

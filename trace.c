@@ -3,10 +3,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
-#include "libdatastruct/linkedlist.h"
 
 #define THREAD_BLOCK_SIZE 32 //square pixels
 #define FOV_RADS 1.5708
+#define GAMMA 2.2
 typedef struct {
     vector p;
     vector n;
@@ -27,23 +27,20 @@ typedef struct {
 } ray_color_pair;
 
 struct render_context_t {
-     int num_threads;
-     int x;
-     int y;
-     int max_bounces;
-     int rays_per_pixel;
-     int cur_itr;
-     float_t fov;
+    int num_threads;
+    int x;
+    int y;
+    int max_bounces;
+    int rays_per_pixel;
+    int cur_itr;
+    float_t fov;
 
     //Primitives
-    LL* ll_planes;
-    plane** planes;
+    plane* planes;
     int num_planes;
-    LL* ll_spheres;
-    sphere** spheres;
+    sphere* spheres;
     int num_spheres;
-    LL* ll_triangles;
-    triangle** triangles;
+    triangle* triangles;
     int num_triangles;
 
     //origin
@@ -82,7 +79,11 @@ intersection intersectSphere(sphere* s, ray r){
     float_t disc = (b*b) - (4 * a * c);
     if (disc >= 0) {
         float_t t = ((-b) - sqrt(disc))/(2*a);
-        vector p = V3(X(r.p) + t * X(r.d), Y(r.p) + t * Y(r.d), Z(r.p) + t * Z(r.d));
+        vector p = V3(
+            X(r.p) + t * X(r.d), 
+            Y(r.p) + t * Y(r.d), 
+            Z(r.p) + t * Z(r.d)
+        );
         vector n = p - s->p;
         return Hit(p, normalize(n), &s->m);
     }
@@ -150,9 +151,9 @@ void compareClosest(ray r, float_t* distance, intersection* closest, intersectio
 }
 
 static const material null_material = {
-     V4(1.0, 1.0, 1.0, 1.0),
-    {0},
-    {0},
+    .c_reflect = V4(1.0, 1.0, 1.0, 1.0),
+    .c_diffuse = {0},
+    .c_emit    = {0}
 };
 
 color toneMapFloatToColor(vector cor) {
@@ -163,7 +164,7 @@ color toneMapFloatToColor(vector cor) {
      	c[i] = c[i] / (c[i] + 1);
     //Compress gamma
     for (int i = 0; i < 4; i++)
-        c[i] = pow(c[i], 0.45454545);
+        c[i] = pow(c[i], 1.0/GAMMA);
     co.r = X(c) * 255;
     co.g = Y(c) * 255;
     co.b = Z(c) * 255;
@@ -199,19 +200,20 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
         int i;
         //Go through each sphere
         for (i = 0; i < c->num_spheres; i++, count++) {
-            test = intersectSphere(c->spheres[i], p.r);
+            test = intersectSphere(&c->spheres[i], p.r);
             if (isHit(test))
                 compareClosest(p.r, &distance, &closest, &test);
         }
         //Go trhough each plane
         for (i = 0; i < c->num_planes; i++, count++) {
-            test = intersectPlane(c->planes[i], p.r);
+            test = intersectPlane(&c->planes[i], p.r);
             if (isHit(test))
                compareClosest(p.r, &distance, &closest, &test);
         }
         //Go through each triangle
         for (i = 0; i < c->num_triangles; i++, count++) {
-            test = intersectTriangle(c->triangles[i], p.r);
+            printf("nt: %i", c->num_triangles);
+            test = intersectTriangle(&c->triangles[i], p.r);
             if (isHit(test))
                compareClosest(p.r, &distance, &closest, &test);
         }
@@ -219,14 +221,22 @@ void _traceRay(render_context* c, int x, int y, int max_bounces) {
         if (isHit(closest)) {
             //We need to calculate our diffuse color
             vector diffuse_color = (vector) {0};
-            if (!IS_VZERO(closest.m->c_diffuse))
-                for (i = 0; i < c->num_spheres; i++, count++)
-                    diffuse_color += calculateDiffuse(closest.m->c_diffuse, c->spheres[i]->m.c_emissions, c->spheres[i]->p, closest.p, closest.n);
-            vector emission_color = closest.m->c_emissions;
+            if (!IS_VZERO(closest.m->c_diffuse)) {
+                for (i = 0; i < c->num_spheres; i++, count++) {
+                    diffuse_color += calculateDiffuse(
+                            closest.m->c_diffuse, 
+                            c->spheres[i].m.c_emit, 
+                            c->spheres[i].p, 
+                            closest.p, 
+                            closest.n
+                    );
+                }
+            }
+            vector emission_color = closest.m->c_emit;
             p.c = (diffuse_color + emission_color) * p.m.c_reflect + p.c;
             p.m.c_reflect *= closest.m->c_reflect;
             p.m.c_diffuse = closest.m->c_diffuse;
-            p.m.c_emissions = closest.m->c_emissions;
+            p.m.c_emit = closest.m->c_emit;
             //This is our next ray
             p.r = (ray){closest.p, reflect(p.r.d, closest.n)};
         }
@@ -253,8 +263,7 @@ long getNextBlock(render_context* rc) {
     return b;
 }
 
-void declareBlockFinished(render_context* rc, long block)
-{
+void declareBlockFinished(render_context* rc, long block) {
 
 }
 
@@ -284,38 +293,70 @@ void _startRenderThread(thread_context* c) {
 
 render_context* createRenderContext() {
     render_context* rc = aligned_malloc(64, sizeof(render_context));
-    rc->ll_planes = llCreate();
-    rc->ll_spheres = llCreate();
-    rc->ll_triangles = llCreate();
+    memset(rc, 0, sizeof(render_context));
     rc->fov = FOV_RADS;
     pthread_mutex_init(&rc->mutex, NULL);
     return rc;
+}
+
+void deleteRenderContext(render_context* rc) {
+    pthread_mutex_destroy(&rc->mutex);
+    free(rc);
 }
 
 
 void adjustMaterialGamma(material* m) {
     //Decode gamma to linera
     for (int i = 0; i < 3; i++)
-        m->c_emissions[i] = pow(m->c_emissions[i], 2.2);
+        m->c_emit[i] = pow(m->c_emit[i], GAMMA);
 }
 
-void addSphere(render_context* rc, sphere* s) {
-    adjustMaterialGamma(&(s->m));
-    llPushBack(rc->ll_spheres, s);
+static double _getTimestamp() {
+    struct timespec curtime;
+    clock_gettime(CLOCK_MONOTONIC, &curtime);
+    return curtime.tv_sec + curtime.tv_nsec / 1000000000.0;
 }
 
-void addPlane(render_context* rc, plane* p) {
-    adjustMaterialGamma(&(p->m1));
-    adjustMaterialGamma(&(p->m2));
-    llPushBack(rc->ll_planes, p);
-}
+typedef struct {
+    thread_context* contexts;
+    int num_threads;
+    long total_pixels;
+    double start_time;
+} stats_context;
 
-void addTriangle(render_context* rc, triangle* t) {
-    adjustMaterialGamma(&(t->m));
-    llPushBack(rc->ll_triangles, t);
+
+static void _statsThread(stats_context* sc) {
+    long total = sc->total_pixels;
+    long last_complete = 0;
+    long complete = 0;
+    do {
+        usleep(62500);
+        complete = 0;
+        for (int i = 0; i < sc->num_threads; i++) {
+            complete += sc->contexts[i].count_complete;
+        }
+        long pix_per_sec = (complete - last_complete) * 4.0;
+        double percentage = complete/(double)total;
+        last_complete = complete;
+        double total_secs = _getTimestamp() - sc->start_time;
+        long msecs = (int)(total_secs * 1000.0) % 1000;
+        long mins = total_secs / 60;
+        long hours = mins / 60;
+        mins %= 60;
+        long secs = (long)(total_secs) % 60;
+        long avg_pix_per_sec = complete / total_secs;
+        fprintf(
+            stderr, 
+           "%10.6lf%% Complete. Elapsed %02li:%02li:%02li.%03li, cur: %li\t avg: %li pixels per sec       \r", 
+           percentage * 100, hours, mins, secs, msecs, pix_per_sec, avg_pix_per_sec
+        );
+    } while(complete < total);
+    fprintf(stderr, "\n");
 }
 
 void renderScene(render_context* rc, render_parameters* params) {
+    //Record start time
+    double start_time = _getTimestamp();
     rc->current_block = 0;
     rc->origin_x = params->origin_x;
     rc->origin_y = params->origin_y;
@@ -327,18 +368,20 @@ void renderScene(render_context* rc, render_parameters* params) {
     rc->cur_itr = 0;
     int x = params->x;
     int y = params->y;
-    //Generate arrays
-    rc->planes = (plane**)llCreateArray(rc->ll_planes);
-    rc->num_planes = llGetCount(rc->ll_planes);
-    rc->spheres = (sphere**)llCreateArray(rc->ll_spheres);
-    rc->num_spheres = llGetCount(rc->ll_spheres);
-    rc->triangles = (triangle**)llCreateArray(rc->ll_triangles);
-    rc->num_triangles = llGetCount(rc->ll_spheres);
+    //Copy params to render context
+    rc->planes = params->planes;
+    rc->num_planes = params->num_planes;
+    rc->spheres = params->spheres;
+    rc->num_spheres = params->num_spheres;
+    rc->triangles = params->triangles;
+    rc->num_triangles = params->num_triangles;
     rc->num_rays = x * y;
     rc->output = (color*) params->output_buffer;
+    //Set block and stride information for render threads
     rc->block_size = THREAD_BLOCK_SIZE;
     rc->block_stride = x / rc->block_size + !!(x % rc->block_size);
     rc->total_blocks = ((y / rc->block_size) + !!(y % rc->block_size)) * rc->block_stride;
+    //Create the worker threads eith their contexts
     pthread_t threads[params->num_threads];
     thread_context contexts[params->num_threads];
     for (int i = 0; i < params->num_threads; i++) {
@@ -349,39 +392,25 @@ void renderScene(render_context* rc, render_parameters* params) {
         c->num_traces = 0;
         pthread_create(&(threads[i]), NULL, (void *(*)(void*))_startRenderThread, (void*)c);
     }
-    long complete = 0;
-    long total = x * y;
-    double last_percentage = 0;
-    long last_complete = 0;
-    while (complete < total) {
-        usleep(250000);
-        complete = 0;
-        for (int i = 0; i < params->num_threads; i++) {
-            complete += contexts[i].count_complete;
-        }
-        long complete_difference = (complete - last_complete) * 4.0;
-        double percentage = complete/(double)total;
-        double difference = (percentage - last_percentage) * 4.0;
-        last_percentage = percentage;
-        last_complete = complete;
-        if (difference > 0) {
-             double estimated_secs = ((1.0 / (difference)));
-             double estimated_mins = estimated_secs / 60.0;
-             long hours = estimated_mins / 60.0;
-             long mins = (long)estimated_mins % 60;
-	         long secs = (long)estimated_secs % 60;
-             fprintf(stderr, "%lf%% Complete ETA %li hr, %li min, %li secs, %li pixels per sec\n", percentage * 100, hours, mins, secs, complete_difference);
-        }
-        else {
-            fprintf(stderr, "%lf%% Complete\n", percentage * 100);
-            break;
-        }
-    }
+    //Start the thread that displays stats
+    pthread_t stats_thread;
+    stats_context sc = {
+        .contexts = contexts,
+        .num_threads = params->num_threads,
+        .total_pixels = x * y,
+        .start_time = start_time
+    };
+    pthread_create(&stats_thread, NULL, (void *(*)(void*))_statsThread, (void*)&sc);
+    //Join the worker threads
     for (int i = 0; i < params->num_threads; i++) {
          pthread_join(threads[i], NULL);
     }
-    //render cleanup
-    free(rc->planes);
-    free(rc->spheres);
-    free(rc->triangles);
+    //Get final time before the stats thread ends
+    double end_time = _getTimestamp();
+    //Join the stats threads
+    pthread_join(stats_thread, NULL);
+    //Display elapsed time
+    fprintf(stderr, 
+            "Complete.\n Total Frame Render Time: %lf\n", 
+            end_time - start_time);
 }

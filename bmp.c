@@ -32,6 +32,5 @@ void generateBmp(FILE* fh, char* img, int x, int y) {
         fwrite(img+(w*(h-i-1)*3),3,w,fh);
         fwrite(bmppad,1,(4-(w*3)%4)%4,fh);
     }
-    fclose(fh);
 }
 
