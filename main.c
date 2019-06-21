@@ -349,17 +349,12 @@ int main(int argc, char** argv) {
     };
     //Render each frame
     for (int i = 0; i < params.num_frames; i++) {
-        memset(output_buffer, 0, 3 * params.w * params.h);
-        //Z is different each frame
-        render_params.origin_z = -10 + (i/10.0);
-    	fprintf(stderr, "Generating frame %d\n", i);
-    	int completed = renderScene(rc, &render_params);
-        if (!completed) {
-            break;
-        }
         char filename[256];
         snprintf(filename, 256, "%s/%d.bmp", params.output_dir, i);
-        printf("Dumping frame to %s...\n", filename);
+        if (access(filename, F_OK) != -1) {
+            fprintf(stderr, "Frame %i already generated, I think\n", i);
+            continue;
+        }
         FILE* fh = fopen(filename, "wb");
         if (!fh) {
             fprintf(stderr, "Could not open file. Perhaps a permissions issue "
@@ -368,6 +363,16 @@ int main(int argc, char** argv) {
             
         }
         generateBmp(fh, output_buffer, params.w, params.h);
+
+        memset(output_buffer, 0, 3 * params.w * params.h);
+        //Z is different each frame
+        render_params.origin_z = -10 + (i/10.0);
+    	fprintf(stderr, "Generating frame %d\n", i);
+    	int completed = renderScene(rc, &render_params);
+        if (!completed) {
+            break;
+        }
+        printf("Dumping frame to %s...\n", filename);
         fclose(fh);
     }
     deleteRenderContext(rc);
