@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
 
         memset(output_buffer, 0, 3 * params.w * params.h);
         //Z is different each frame
-        render_params.origin_z = -10 + (i/10.0);
+        render_params.origin_z = -10 + (i/50.0);
     	fprintf(stderr, "Generating frame %d\n", i);
     	int completed = renderScene(rc, &render_params);
         if (!completed) {
