@@ -25,6 +25,8 @@ typedef struct {
     int win_h;
     int random_seed;
     char* output_dir;
+    int overwrite;
+    double distance;
 } program_parameters;
 
 
@@ -45,17 +47,18 @@ General Options:\n\
     --num-spheres <num>   The number of spheres to render in the scene\n\
 \n\
 Path Tracing Options:\n\
-    --enable_path_tracing Set to enable full monte-carlo path tracing\n\
+    --enable-path-tracing Set to enable full monte-carlo path tracing\n\
                           For soft shadows, global illumination, etc\n\
-    --samples_per_pixels  The number of samples per pixel for path tracing\n\
+    --samples-per-pixels  The number of samples per pixel for path tracing\n\
 \n\
 Output Options:\n\
     --enable-window       Enable output window for live viewing of output\n\
-    --window-resolution <width>x<height> Resolution of output window\n\
+    --window-resolution   <width>x<height> Resolution of output window\n\
                                          if enabled\n\
-    --output-directory <dir> Output directory for the frames\n\
-    --output-format <format> Output format for the frames, default bmp\n\
-    --num-frames <num> Number of frames to geneate. Default 1\n\
+    --output-directory    <dir> Output directory for the frames\n\
+    --output-format       <format> Output format for the frames, default bmp\n\
+    --num-frames          <num> Number of frames to generate. Default 1\n\
+    --overwrite           Overwrite existing files\n\
 ";
 
 static void print_usage_and_quit() {
@@ -140,6 +143,15 @@ static void parse_args(int argc, char** argv) {
             { //11
                 .name = "num-spheres",
                 .has_arg = required_argument
+            },
+            { //12
+                .name = "overwrite",
+                .flag = &(params.overwrite),
+                .val = 1
+            },
+            { //13
+                .name = "distance-per-frame",
+                .has_arg = required_argument    
             }
         };
         int i;
@@ -186,6 +198,8 @@ static void parse_args(int argc, char** argv) {
                     case 11:
                         params.num_spheres = parse_int(optarg);
                         break;
+                    case 13:
+                        params.distance = atof(optarg);
                 }
                 break;
             default:
@@ -226,6 +240,7 @@ int main(int argc, char** argv) {
     params.num_frames = 1;
     params.random_seed = -1; //Indicates to use TIME()
     params.num_spheres = 3000;
+    params.distance = 1/50.0;
     //Parse the arguments
     parse_args(argc, argv);
     //Validate parameters
@@ -254,7 +269,7 @@ int main(int argc, char** argv) {
             .m = (material) {
                 .c_reflect = V3(1.0, 1.0, 1.0),
                 .c_diffuse = V3(0.2, 0.2, 0.2),
-                .c_emit    = V4(0.05, 0.05, 0.05, 0.0),        
+                .c_emit    = V4(0.15, 0.15, 0.15, 0.0),        
             }
         },
         {
@@ -307,8 +322,8 @@ int main(int argc, char** argv) {
     }
     plane static_planes[] = {
         {
-            .p = V3(0.0, -6.0, 0.0),
-            .n = normalize(V3(0.0, 1.0, 0.0)),
+            .p = V3(0.0, -100.0, 0.0),
+            .n = normalize(V3(0.0, 1.0, -1.0)),
             .m1 = { // even pattern material
                 .c_reflect = V3(0.1, 0.1, 0.1),
                 .c_diffuse = V3(0.28, 0.35, 0.35),
@@ -351,7 +366,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < params.num_frames; i++) {
         char filename[256];
         snprintf(filename, 256, "%s/%d.bmp", params.output_dir, i);
-        if (access(filename, F_OK) != -1) {
+        if (!params.overwrite && access(filename, F_OK) != -1) {
             fprintf(stderr, "Frame %i already generated, I think\n", i);
             continue;
         }
@@ -362,17 +377,26 @@ int main(int argc, char** argv) {
             exit(1);
             
         }
-        generateBmp(fh, output_buffer, params.w, params.h);
 
-        memset(output_buffer, 0, 3 * params.w * params.h);
+        //memset(output_buffer, 0, 3 * params.w * params.h);
         //Z is different each frame
-        render_params.origin_z = -10 + (i/50.0);
+//        render_params.origin_z = -10 + (i * params.distance);
+//
+        for (int j = 0; j < 5; j++) {
+//            spheres[j].p[1] = spheres[j].p[1] + params.distance * 1/spheres[j].r;
+        }
+        for (int j = 4; j < num_spheres; j++) {
+            spheres[j].p[1] = spheres[j].p[1] - params.distance * 1/spheres[j].r;
+            if (spheres[j].p[1] < (spheres[j].r - 6.0))
+                spheres[j].p[1] = spheres[j].r - 6.0;
+        }
     	fprintf(stderr, "Generating frame %d\n", i);
     	int completed = renderScene(rc, &render_params);
         if (!completed) {
             break;
         }
         printf("Dumping frame to %s...\n", filename);
+        generateBmp(fh, output_buffer, params.w, params.h);
         fclose(fh);
     }
     deleteRenderContext(rc);

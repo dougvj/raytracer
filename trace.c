@@ -178,6 +178,8 @@ color toneMapFloatToColor(vector cor) {
 
 
 
+
+
 ray_color_pair _generateOriginRay(render_context* c, int x, int y) {
     float_t rx = (x / (float_t)c->x) * 2 - 1.0f;
     float_t ry = (((y / (float_t)c->y) * 2 - 1.0f) * (c->y / (float)c->x)) * -1;
