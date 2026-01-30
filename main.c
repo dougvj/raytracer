@@ -16,9 +16,7 @@ typedef struct {
     int num_frames;
     int num_spheres;
     int max_bounces;
-    //Path tracing options
-    int path_tracing_enabled;
-    int samples_per_pixel;
+    int diffuse_samples;
     //Window options
     int window_enabled;
     int win_w;
@@ -34,7 +32,7 @@ float frand() {
     return rand() / (float)RAND_MAX;
 }
 
-static const char usage_string[] = 
+static const char usage_string[] =
 "\
 General Options:\n\
     --resolution <width>x<height> Required output resolution argument, \n\
@@ -47,9 +45,8 @@ General Options:\n\
     --num-spheres <num>   The number of spheres to render in the scene\n\
 \n\
 Path Tracing Options:\n\
-    --enable-path-tracing Set to enable full monte-carlo path tracing\n\
-                          For soft shadows, global illumination, etc\n\
-    --samples-per-pixels  The number of samples per pixel for path tracing\n\
+    --diffuse-samples  The number of samples per pixel for path tracing\n\
+                      if 0, path tracing is disabled in favor of simple directional diffuse\n\
 \n\
 Output Options:\n\
     --enable-window       Enable output window for live viewing of output\n\
@@ -80,7 +77,7 @@ static void parse_resolution_arg(char* arg, int* x, int* y) {
     //find the 'x' part
     for (h = res; *h != '\0' && *h != 'x'; h++);
     if (*h == '\0') {
-        fprintf(stderr, "Expected <width>x<height>\n"); 
+        fprintf(stderr, "Expected <width>x<height>\n");
         exit(1);
     }
     h++;
@@ -96,7 +93,7 @@ static void parse_args(int argc, char** argv) {
             //required arguments
             { //0
                 .name = "resolution",
-                .has_arg = required_argument 
+                .has_arg = required_argument
             },
             //optional arguments with defaults
             { //1
@@ -108,50 +105,46 @@ static void parse_args(int argc, char** argv) {
                 .has_arg = required_argument
             },
             { //3
-                .name = "enable-path-tracing",
-                .flag = &(params.path_tracing_enabled),
-                .val = 1
+                .name = "diffuse-samples",
+                .has_arg = required_argument,
+                .val = 0
             },
             { //4
-                .name = "samples-per-pixel",
-                .has_arg = required_argument
-            },
-            { //5
                 .name = "num-frames",
                 .has_arg = required_argument
             },
-            { //6
+            { //5
                 .name = "enable-window",
                 .flag = &(params.window_enabled),
                 .val = 1
             },
-            { //7
+            { //6
                 .name = "window-resolution",
                 .has_arg = required_argument
             },
-            { //8
+            { //7
                 .name = "output-directory",
                 .has_arg = required_argument
             },
-            { //9
+            { //8
                 .name = "help",
             },
-            { //10
+            { //9
                 .name = "random-seed",
                 .has_arg = required_argument
             },
-            { //11
+            { //10
                 .name = "num-spheres",
                 .has_arg = required_argument
             },
-            { //12
+            { //11
                 .name = "overwrite",
                 .flag = &(params.overwrite),
                 .val = 1
             },
-            { //13
+            { //12
                 .name = "distance-per-frame",
-                .has_arg = required_argument    
+                .has_arg = required_argument
             }
         };
         int i;
@@ -177,28 +170,28 @@ static void parse_args(int argc, char** argv) {
                     case 2: //max-bounces
                         params.max_bounces = parse_int(optarg);
                         break;
-                    case 4: //samples-per-pixel
-                        params.samples_per_pixel = parse_int(optarg);
+                    case 3: //samples-per-pixel
+                        params.diffuse_samples = parse_int(optarg);
                         break;
-                    case 5: //num-frames
+                    case 4: //num-frames
                         params.num_frames = parse_int(optarg);
                         break;
-                    case 7: //window-resolution
+                    case 6: //window-resolution
                         parse_resolution_arg(optarg, &(params.win_w), &(params.win_h));
                         break;
-                    case 8:
+                    case 7:
                         params.output_dir = optarg;//Need to dup?
                         break;
-                    case 9: //help
+                    case 8: //help
                         print_usage_and_quit();
                         break;
-                    case 10:
+                    case 9:
                         params.random_seed = parse_int(optarg);
                         break;
-                    case 11:
+                    case 10:
                         params.num_spheres = parse_int(optarg);
                         break;
-                    case 13:
+                    case 12:
                         params.distance = atof(optarg);
                 }
                 break;
@@ -219,13 +212,10 @@ static void print_parameters() {
     fprintf(stderr, "\tNum Frames: %i\n", params.num_frames);
     fprintf(stderr, "\tNum Worker Threads: %i\n", params.num_threads);
     fprintf(stderr, "\tMax Bounces: %i\n", params.max_bounces);
-    fprintf(stderr, "\tPath Tracing: %s\n", params.path_tracing_enabled ? "True" : "False");
-    if (params.path_tracing_enabled) {
-        fprintf(stderr, "\tSamples per Pixel: %i\n", params.samples_per_pixel);
-    }
+    fprintf(stderr, "\tDiffuse Samples: %i\n", params.diffuse_samples);
     if (params.random_seed >= 0) {
         fprintf(stderr, "\tRandom Seed: %i\n", params.random_seed);
-    } 
+    }
 }
 
 
@@ -240,7 +230,7 @@ int main(int argc, char** argv) {
     params.num_frames = 1;
     params.random_seed = -1; //Indicates to use TIME()
     params.num_spheres = 3000;
-    params.distance = 1/50.0;
+    params.distance = 1/10.0;
     //Parse the arguments
     parse_args(argc, argv);
     //Validate parameters
@@ -263,22 +253,13 @@ int main(int argc, char** argv) {
         srand(time(NULL));
     render_context* rc = createRenderContext();
     const sphere static_spheres[] = {
-        {
-            .p = V3(0.0, 4.0, 53.0),
-            .r = 2.3,
-            .m = (material) {
-                .c_reflect = V3(1.0, 1.0, 1.0),
-                .c_diffuse = V3(0.2, 0.2, 0.2),
-                .c_emit    = V4(0.15, 0.15, 0.15, 0.0),        
-            }
-        },
-        {
+        /*{
             .p = V3(0.0, 0.0, 55.2),
             .r = 1.5,
             .m = (material) {
                 .c_reflect = V3(1.0, 1.0, 1.0),
-                .c_diffuse = V3(0.0, 0.0, 0.0),
-                .c_emit    = V4(0.0, 0.0, 1.0, 100.0f),
+                .c_diffuse = V3(0.1, 0.1, 0.1),
+                .c_emit    = V4(0.0, 0.0, 1.0, 1000.0f),
             }
         },
         {
@@ -286,8 +267,8 @@ int main(int argc, char** argv) {
             .r = 1.5,
             .m = (material) {
                 .c_reflect = V3(1.0, 1.0, 1.0),
-                .c_diffuse = V3(0.0, 0.0, 0.0),
-                .c_emit    = V4(0.0, 1.0, 0.0, 100.0f),
+                .c_diffuse = V3(0.1, 0.1, 0.1),
+                .c_emit    = V4(0.0, 1.0, 0.0, 1000.0f),
             }
         },
         {
@@ -295,10 +276,28 @@ int main(int argc, char** argv) {
             .r = 1.5,
             .m = (material) {
                 .c_reflect = V3(1.0, 1.0, 1.0),
-                .c_diffuse = V3(0.0, 0.0, 0.0),
-                .c_emit    = V4(1.0, 0.0, 0.0, 100.0f),
+                .c_diffuse = V3(0.1, 0.1, 0.1),
+                .c_emit    = V4(1.0, 0.0, 0.0, 1000.0f),
             }
-        },
+        },*/
+        /*{
+            .p = V3(0.0, 4.0, 53.0),
+            .r = 2.3,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.2, 0.2, 0.2),
+                .c_emit    = V4(0.15, 0.15, 0.15, 10.0),
+            }
+        },*/
+        /*{
+            .p = V3(0.0, 100.0, 53.0),
+            .r = 10,
+            .m = (material) {
+                .c_reflect = V3(1.0, 1.0, 1.0),
+                .c_diffuse = V3(0.2, 0.2, 0.2),
+                .c_emit    = V4(0.1, 0.1, 0.1, 1.0),
+            }
+        },*/
     };
     const int num_static_spheres = sizeof(static_spheres) / sizeof(sphere);
     int num_spheres = params.num_spheres + num_static_spheres;
@@ -307,37 +306,67 @@ int main(int argc, char** argv) {
     for (int i = 0; i < num_static_spheres; i++) {
         spheres[i] = static_spheres[i];
     }
-    //Generate the random spheres
-    for (int i = num_static_spheres; i < num_spheres; i++) {
-        vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
+    //Generate the random spheres from a collection of colors:
+    vector bauble_colors[] = {
+        V3(0.9, 0.0, 0.0),
+        V3(0.0, 0.9, 0.0),
+        V3(0.0, 0.0, 0.9),
+        V3(0.5, 0.0, 0.0),
+        V3(0.0, 0.5, 0.0),
+        V3(0.0, 0.0, 0.5),
+        V3(0.9, 0.9, 0.9),
+        V3(0.9, 0.7, 0.0),
+    };
+    int num_bauble_colors = sizeof(bauble_colors) / sizeof(vector);
+    for (int i = num_static_spheres; i < num_spheres / 2; i++) {
+        //vector color = V3(0.8 * frand() + 0.1, 0.8 * frand() + 0.1, 0.8 * frand() + 0.1);
+        vector color = bauble_colors[rand() % num_bauble_colors];
         spheres[i] = (sphere) {
             .p = V3(frand() * 100. - 50., frand() * 20 + 9.4,  frand() * 100 - 20 + 25),
             .r = frand() * 3 + 1,
             .m = (material) {
-                .c_reflect = color,
+                .c_reflect = color + V3(0.1, 0.1, 0.1),
                 .c_diffuse = color,
                 .c_emit = {0}
             }
         };
     }
+    vector light_colors[] = {
+      V3(0.6, 0.8, 1.0),
+    };
+    int num_colors = sizeof(light_colors) / sizeof(vector);
+    // Smaller light emitting spheres
+    for (int i = num_spheres / 2; i < num_spheres; i++) {
+        vector color = light_colors[rand() % num_colors];
+        spheres[i] = (sphere) {
+            .p = V3(frand() * 100. - 50., frand() * 20 + 1.0,  frand() * 100 - 20 + 25),
+            .r = frand() * 0.1 + 0.3,
+            .m = (material) {
+                .c_reflect = V3(0.1, 0.1, 0.1),
+                .c_diffuse = V3(0.0, 0.0, 0.0),
+                .c_emit    = V4(color[0], color[1], color[2], 1000.0)
+            }
+        };
+    }
+
     plane static_planes[] = {
         {
-            .p = V3(0.0, -100.0, 0.0),
-            .n = normalize(V3(0.0, 1.0, -1.0)),
+            .p = V3(0.0, -5.0, 0.0),
+            .n = normalize(V3(0.0, 1.0, 0.0)),
             .m1 = { // even pattern material
-                .c_reflect = V3(0.1, 0.1, 0.1),
+                .c_reflect = V3(0.33, 0.33, 0.33),
                 .c_diffuse = V3(0.28, 0.35, 0.35),
                 .c_emit = V4(0.0, 0.0, 0.0, 0.0),
             },
             .m2 = { // odd pattern material
-                .c_reflect = V3(0.25, 0.25, 0.25),
+                .c_reflect = V3(0.33, 0.33, 0.33),
                 .c_diffuse = V3(0.04, 0.05, 0.05),
                 .c_emit = V4(0.0, 0.0, 0.0, 0.0f),
             }
         }
     };
     //Allocate the output frame buffer
-    char* output_buffer = aligned_malloc(64, 
+    char* output_buffer = aligned_malloc(64,
                                          sizeof(char[3]) * params.w * params.h);
     window* w = NULL;
     if (params.window_enabled) {
@@ -350,7 +379,7 @@ int main(int argc, char** argv) {
         .y = params.h,
         .num_threads = params.num_threads,
         .max_bounces = params.max_bounces,
-        .samples_per_pixel = params.samples_per_pixel,
+        .diffuse_samples = params.diffuse_samples,
         .origin_x = 0.0,
         .origin_y = 0.0,
         .output_buffer = output_buffer,
@@ -375,21 +404,21 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Could not open file. Perhaps a permissions issue "
                             "or path not found?\n");
             exit(1);
-            
+
         }
 
         //memset(output_buffer, 0, 3 * params.w * params.h);
         //Z is different each frame
-//        render_params.origin_z = -10 + (i * params.distance);
+        render_params.origin_z = -10 + (i * params.distance);
 //
         for (int j = 0; j < 5; j++) {
 //            spheres[j].p[1] = spheres[j].p[1] + params.distance * 1/spheres[j].r;
         }
-        for (int j = 4; j < num_spheres; j++) {
+        /*for (int j = 4; j < num_spheres; j++) {
             spheres[j].p[1] = spheres[j].p[1] - params.distance * 1/spheres[j].r;
             if (spheres[j].p[1] < (spheres[j].r - 6.0))
                 spheres[j].p[1] = spheres[j].r - 6.0;
-        }
+        }*/
     	fprintf(stderr, "Generating frame %d\n", i);
     	int completed = renderScene(rc, &render_params);
         if (!completed) {

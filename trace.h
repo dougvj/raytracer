@@ -27,7 +27,7 @@ typedef struct {
     int y;
     int num_threads;
     int max_bounces;
-    int samples_per_pixel;
+    int diffuse_samples;
     char* output_buffer;
     float origin_x;
     float origin_y;

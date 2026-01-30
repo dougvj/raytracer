@@ -18,7 +18,6 @@
 #ifndef _UDPSERV_H_
 #define _UDPSERV_H_
 #include <stdint.h>
-#include "libdatastruct/hashtable.h"
 
 typedef struct udp_server_t udp_server;
 

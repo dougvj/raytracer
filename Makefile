@@ -2,7 +2,10 @@ CLANG=1
 WARNINGS= -Wall -Werror -Wfatal-errors
 CWARNINGS=
 INCLUDE=
-CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) 
+#INCLUDE=-DSINGLE_PRECISION
+# Add autovectorization flags
+VECTORIZE= -ftree-vectorize -fopt-info-vec-optimized -ftree-vectorizer-verbose=2
+CFLAGS= -MMD -std=gnu99 $(WARNINGS) $(CWARNINGS) $(INCLUDE) $(VECTORIZE)
 
 LDFLAGS= -lpthread -lm -lSDL2 -lGL
 
@@ -19,7 +22,7 @@ EXECUTABLE=raytrace
 
 CC=gcc
 ifdef PHI
-CC=icc 
+CC=icc
 endif
 
 
@@ -30,7 +33,7 @@ OBJECTS = $(SRC:%.c=%.o)
 OBJECTS = $(SRC:%.c=%.o)
 
 
-all: $(OBJECTS) 
+all: $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $(EXECUTABLE)
 
 cleanDebug: clean Debug
@@ -57,7 +60,7 @@ clang: set_clang all
 Release: all
 
 $(EXECUTABLE): $(OBJECTS) $(CPPOBJECTS)
-	$(CXX) $^ $(LDFLAGS) -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 
 set_test:
@@ -66,15 +69,12 @@ set_test:
 
 
 ifdef DEBUG
-CFLAGS+= -g -ffast-math 
-else 
+CFLAGS+= -g -ffast-math
+else
 CFLAGS+= -g -O3 -march=native -mtune=native -ffast-math
 endif
 ifdef PHI
-CFLAGS = -O3 -mmic -mkl 
-endif 
-ifdef CLANG
-CC=clang 
+CFLAGS = -O3 -mmic -mkl
 endif
 
 Test: set_test $(OBJECTS) unit-test.o test.o
@@ -88,6 +88,6 @@ unit-test.o: ./test/unit-test.c
 
 
 
--include $(SRC:%.c=%.d) 
+-include $(SRC:%.c=%.d)
 -include $(CPPSRC:%.cpp=%.d)
 

@@ -80,7 +80,7 @@ static inline vector normalize(vector a) {
 
 static inline vector reflect(vector v, vector n) {
     float_t d = dot(v, n);
-    return (v - (d * 2.0 * n));
+    return (v - (d * (float_t)2.0 * n));
 }
 
 
