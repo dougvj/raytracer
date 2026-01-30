@@ -2,4 +2,8 @@
 *.d
 *.bmp
 *.mp4
+*.png
 raytrace
+render_output/
+libdatastruct/
+ke
